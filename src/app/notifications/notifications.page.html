@@ -1,0 +1,55 @@
+<ion-header class="notifications-header">
+  <ion-toolbar class="title-toolbar">
+    <button class="back-button" type="button" (click)="goBack()" slot="start" aria-label="Kembali">
+      <ion-icon name="arrow-back-outline"></ion-icon>
+    </button>
+    <ion-title>Notifikasi</ion-title>
+  </ion-toolbar>
+
+  <ion-toolbar class="tabs-toolbar">
+    <div class="notification-tabs" role="tablist" aria-label="Kategori pengingat stok">
+      <button
+        class="tab-button"
+        type="button"
+        role="tab"
+        *ngFor="let tab of tabs"
+        [class.active]="activeCategory === tab.key"
+        [ngClass]="tab.tone"
+        (click)="selectCategory(tab.key)"
+      >
+        <span class="tab-dot"></span>
+        <span class="tab-label">{{ tab.label }}</span>
+      </button>
+    </div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="false" class="notifications-content">
+  <div class="notifications-shell">
+    <div class="notifications-list" *ngIf="filteredNotifications.length > 0; else emptyNotifications">
+      <div
+        class="notification-card"
+        *ngFor="let notif of filteredNotifications"
+        [class.unread]="!notif.read"
+      >
+        <div class="notification-icon" [ngClass]="{ 'icon-warning': notif.icon === 'warning-outline', 'icon-success': notif.icon === 'checkmark-circle-outline', 'icon-alert': notif.icon === 'alert-circle-outline' }">
+          <ion-icon [name]="notif.icon"></ion-icon>
+        </div>
+        <div class="notification-content">
+          <h3>{{ notif.title }}</h3>
+          <p>{{ notif.message }}</p>
+          <span class="timestamp">{{ notif.timestamp }}</span>
+        </div>
+        <div class="notification-indicator" *ngIf="!notif.read"></div>
+      </div>
+    </div>
+
+    <ng-template #emptyNotifications>
+      <div class="empty-state">
+        <ion-icon name="notifications"></ion-icon>
+        <h2>Jangan Kehabisan Stok Lagi</h2>
+        <p>Dapatkan notifikasi saat stok hampir habis</p>
+      </div>
+    </ng-template>
+  </div>
+</ion-content>

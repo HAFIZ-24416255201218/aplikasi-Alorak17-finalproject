@@ -1,0 +1,55 @@
+<ion-content [fullscreen]="true" class="edit-profile-content">
+  <div class="edit-profile-top">
+    <button class="back-button" type="button" aria-label="Kembali" (click)="goBack()">
+      <ion-icon name="chevron-back-outline"></ion-icon>
+    </button>
+    <div>
+      <h1>Edit Profile</h1>
+      <p>Ubah nama pengguna, email, dan password</p>
+    </div>
+  </div>
+
+  <form class="edit-profile-form" [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+    <div class="form-card">
+      <label class="form-field">
+        <span>Nama Pengguna</span>
+        <div class="input-box">
+          <ion-icon name="person-outline"></ion-icon>
+          <input type="text" formControlName="username" placeholder="Masukkan nama pengguna" autocomplete="name" />
+        </div>
+      </label>
+
+      <label class="form-field">
+        <span>Email</span>
+        <div class="input-box">
+          <ion-icon name="mail-outline"></ion-icon>
+          <input type="email" formControlName="email" placeholder="Masukkan email" autocomplete="email" />
+        </div>
+      </label>
+
+      <label class="form-field">
+        <span>Password Baru</span>
+        <div class="input-box">
+          <ion-icon name="lock-closed-outline"></ion-icon>
+          <input
+            [type]="showPassword ? 'text' : 'password'"
+            formControlName="password"
+            placeholder="Kosongkan jika tidak diganti"
+            autocomplete="new-password"
+          />
+          <button class="password-toggle" type="button" aria-label="Tampilkan password" (click)="togglePasswordVisibility()">
+            <ion-icon [name]="showPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+          </button>
+        </div>
+      </label>
+    </div>
+
+    <div class="message success" *ngIf="successMessage">{{ successMessage }}</div>
+    <div class="message error" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+    <button class="save-button" type="submit">
+      <ion-icon name="checkmark-done-outline"></ion-icon>
+      <span>Simpan Perubahan</span>
+    </button>
+  </form>
+</ion-content>

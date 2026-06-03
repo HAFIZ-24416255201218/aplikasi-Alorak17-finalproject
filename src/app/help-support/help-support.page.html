@@ -1,0 +1,59 @@
+<ion-header [translucent]="true" class="help-header">
+  <ion-toolbar>
+    <button class="back-button" type="button" (click)="goBack()" slot="start" aria-label="Back">
+      <ion-icon name="chevron-back-outline"></ion-icon>
+    </button>
+    <ion-title>Help & Support</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="false" class="help-content">
+  <div class="help-shell">
+    <section class="support-hero">
+      <div class="hero-copy">
+        <span class="eyebrow">Pusat Bantuan</span>
+        <h1>Ada yang bisa kami bantu?</h1>
+        <p>Temukan jawaban cepat seputar inventory, transaksi barang, dan pengaturan akun.</p>
+      </div>
+      <div class="hero-icon">
+        <ion-icon name="headset-outline"></ion-icon>
+      </div>
+    </section>
+
+    <section class="faq-section">
+      <h2>Frequently Asked Questions</h2>
+      <div class="faq-list">
+        <button
+          *ngFor="let faq of faqs"
+          class="faq-card"
+          type="button"
+          (click)="toggleFaq(faq)"
+          [class.expanded]="faq.expanded"
+        >
+          <div class="faq-header">
+            <h3>{{ faq.question }}</h3>
+            <ion-icon [name]="faq.expanded ? 'chevron-up-outline' : 'chevron-down-outline'"></ion-icon>
+          </div>
+          <div class="faq-body" *ngIf="faq.expanded">
+            <p>{{ faq.answer }}</p>
+          </div>
+        </button>
+      </div>
+    </section>
+
+    <section class="contact-section">
+      <h2>Hubungi Kami</h2>
+      <div class="contact-card">
+        <div class="contact-item">
+          <div class="contact-icon">
+            <ion-icon name="mail-outline"></ion-icon>
+          </div>
+          <div class="contact-details">
+            <span class="label">Email</span>
+            <a href="mailto:{{ contactInfo.email }}">{{ contactInfo.email }}</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</ion-content>

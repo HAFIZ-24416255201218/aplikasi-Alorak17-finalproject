@@ -1,0 +1,358 @@
+.help-header {
+  --background: #eef3fb;
+  box-shadow: none;
+
+  ion-toolbar {
+    --background: #eef3fb;
+    --border-width: 0;
+    padding: 10px 12px 4px;
+  }
+
+  ion-title {
+    padding-inline: 0;
+    font-size: 28px;
+    font-weight: 800;
+    color: #273041;
+  }
+}
+
+.back-button {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  color: #273041;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-right: 8px;
+
+  ion-icon {
+    font-size: 24px;
+  }
+}
+
+.help-content {
+  --background: #eef3fb;
+}
+
+.help-shell {
+  padding: 10px 10px 24px;
+}
+
+.support-hero {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 76px;
+  gap: 14px;
+  align-items: center;
+  margin: 6px 0 22px;
+  padding: 22px 18px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #2458ff 0%, #31b8d9 100%);
+  color: #ffffff;
+  box-shadow: 0 14px 30px rgba(36, 88, 255, 0.22);
+
+  &::after {
+    content: "";
+    position: absolute;
+    right: -36px;
+    bottom: -54px;
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.14);
+  }
+}
+
+.hero-copy,
+.hero-icon {
+  position: relative;
+  z-index: 1;
+}
+
+.eyebrow {
+  display: inline-flex;
+  margin-bottom: 8px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.support-hero h1 {
+  margin: 0 0 8px;
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.support-hero p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 600;
+}
+
+.hero-icon {
+  width: 68px;
+  height: 68px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  ion-icon {
+    font-size: 36px;
+  }
+}
+
+h2 {
+  color: #273041;
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 12px;
+  padding: 0 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.faq-section {
+  margin-bottom: 24px;
+}
+
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.faq-card {
+  background: #ffffff;
+  border: 1px solid rgba(219, 226, 239, 0.85);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(28, 39, 60, 0.07);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:active {
+    transform: scale(0.99);
+  }
+}
+
+.faq-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px;
+  gap: 10px;
+
+  h3 {
+    margin: 0;
+    color: #273041;
+    font-size: 15px;
+    font-weight: 600;
+    flex: 1;
+  }
+
+  ion-icon {
+    color: #a0a8b8;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+}
+
+.faq-card.expanded .faq-header {
+  background: linear-gradient(135deg, #f0f7ff 0%, #f5fbff 100%);
+  border-bottom: 1px solid #e8ecf3;
+}
+
+.faq-body {
+  padding: 0 14px 14px;
+  animation: slideDown 0.3s ease-out;
+
+  p {
+    margin: 0;
+    color: #7e889b;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.contact-section {
+  margin-bottom: 24px;
+}
+
+.contact-card {
+  background: #ffffff;
+  border: 1px solid rgba(219, 226, 239, 0.85);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 8px 20px rgba(28, 39, 60, 0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.contact-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.contact-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #e9f3ff 0%, #eefaf8 100%);
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  ion-icon {
+    font-size: 20px;
+  }
+}
+
+.contact-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.label {
+  color: #a0a8b8;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+a {
+  color: #2e8cf6;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+
+  &:active {
+    opacity: 0.7;
+  }
+}
+
+span {
+  color: #273041;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+@media (min-width: 768px) {
+  .help-shell {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 20px 40px 40px;
+  }
+
+  .help-content {
+    --padding-bottom: 30px;
+    --padding-top: 0;
+    --padding-left: 0;
+    --padding-right: 0;
+    --background: #f8fafc;
+  }
+
+  .help-header {
+    --background: #eef3fb;
+
+    ion-toolbar {
+      --background: #eef3fb;
+      padding: 15px 40px 10px;
+    }
+
+    ion-title {
+      font-size: 32px;
+    }
+  }
+
+  .faq-list {
+    gap: 14px;
+  }
+
+  .contact-card {
+    flex-direction: column;
+    gap: 20px;
+  }
+}
+
+:host-context(.app-dark-mode) {
+  .help-header,
+  .help-header ion-toolbar {
+    --background: #0f172a;
+    background: #0f172a;
+  }
+
+  .help-header ion-title,
+  .back-button,
+  h2 {
+    color: #e5e7eb;
+  }
+
+  .help-content {
+    --background: #0f172a;
+  }
+
+  .faq-card,
+  .contact-card {
+    background: #182235;
+    border-color: #253044;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.26);
+  }
+
+  .faq-header h3,
+  span {
+    color: #e5e7eb;
+  }
+
+  .faq-header ion-icon,
+  .label {
+    color: #9ca3af;
+  }
+
+  .faq-card.expanded .faq-header {
+    background: #111827;
+    border-bottom-color: #253044;
+  }
+
+  .faq-body p {
+    color: #cbd5e1;
+  }
+
+  .contact-icon {
+    background: rgba(59, 130, 246, 0.16);
+    color: #93c5fd;
+  }
+
+  a {
+    color: #60a5fa;
+  }
+}

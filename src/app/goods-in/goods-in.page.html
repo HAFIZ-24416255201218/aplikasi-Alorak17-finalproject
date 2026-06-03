@@ -1,0 +1,140 @@
+<ion-content [fullscreen]="false" class="goods-in-content">
+  <div class="goods-in-shell">
+    <div class="goods-in-header">
+      <div class="title-group">
+        <div class="title-icon">
+          <ion-icon name="arrow-down-outline"></ion-icon>
+        </div>
+        <h1>Goods In</h1>
+      </div>
+
+      <button class="close-button" type="button" (click)="close()" aria-label="Close">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+    </div>
+
+    <div class="summary-card">
+      <div>
+        <span>Kode masuk otomatis</span>
+        <strong>{{ form.itemCode }}</strong>
+      </div>
+      <ion-icon name="sparkles-outline"></ion-icon>
+    </div>
+
+    <div class="upload-card">
+      <input #photoInput class="photo-input" type="file" accept="image/*" (change)="onPhotoSelected($event)" />
+
+      <button class="upload-icon-button" type="button" (click)="photoInput.click()" aria-label="Tambah foto produk">
+        <div class="upload-icon" [ngClass]="{ 'has-image': previewImage }">
+          <img *ngIf="previewImage" [src]="previewImage" alt="Preview foto produk" />
+          <ion-icon *ngIf="!previewImage" name="camera-outline"></ion-icon>
+        </div>
+      </button>
+
+      <div class="upload-copy" (click)="photoInput.click()">
+        <button class="upload-button" type="button">
+          <ion-icon name="images-outline"></ion-icon>
+          <span>{{ selectedFileName || 'Tambah foto produk' }}</span>
+        </button>
+        <p>File foto akan ikut tersimpan pada transaksi barang masuk.</p>
+      </div>
+    </div>
+
+    <form class="goods-form">
+      <label class="field">
+        <span>Item Name</span>
+        <input [(ngModel)]="form.itemName" name="itemName" type="text" placeholder="Type item name" />
+      </label>
+
+      <label class="field">
+        <span>Item Code</span>
+        <div class="input-with-icon multiple">
+          <input [(ngModel)]="form.itemCode" name="itemCode" type="text" />
+          <div class="button-group">
+            <button class="scan-button" type="button" (click)="openBarcodeScanner()" aria-label="Scan barcode dari kamera">
+              <ion-icon name="camera-outline"></ion-icon>
+            </button>
+            <button class="scan-button upload-scan" type="button" (click)="barcodeFileInput.click()" aria-label="Upload foto untuk scan barcode">
+              <ion-icon name="image-outline"></ion-icon>
+            </button>
+            <button class="scan-button" type="button" (click)="generateItemCode()" aria-label="Buat kode baru">
+              <ion-icon name="refresh-outline"></ion-icon>
+            </button>
+          </div>
+          <input #barcodeFileInput class="barcode-file-input" type="file" accept="image/*" (change)="onBarcodeFotoSelected($event)" hidden />
+        </div>
+      </label>
+
+      <label class="field">
+        <span>Kategori</span>
+        <input [(ngModel)]="form.category" name="category" type="text" placeholder="Ketik kategori barang" />
+      </label>
+
+      <label class="field">
+        <span>Unit</span>
+        <input [(ngModel)]="form.unit" name="unit" type="text" />
+      </label>
+
+      <div class="threshold-grid">
+        <label class="field">
+          <span>Batas Minimum Stok</span>
+          <input [(ngModel)]="form.minThreshold" name="minThreshold" type="number" min="0" placeholder="50" />
+        </label>
+
+        <label class="field">
+          <span>Batas Stok Sedang</span>
+          <input [(ngModel)]="form.mediumThreshold" name="mediumThreshold" type="number" min="0" placeholder="150" />
+        </label>
+      </div>
+
+      <label class="field">
+        <span>Expiration Date</span>
+        <div class="input-with-icon single">
+          <input #expirationInput [(ngModel)]="form.expirationDate" name="expirationDate" type="date" />
+          <button class="calendar-icon" type="button" (click)="openDatePicker(expirationInput)" aria-label="Pilih tanggal kadaluarsa">
+            <ion-icon name="calendar-outline"></ion-icon>
+          </button>
+        </div>
+      </label>
+
+      <label class="field">
+        <span>Dest Location</span>
+        <div class="select-wrap">
+          <select [(ngModel)]="form.destLocation" name="destLocation">
+            <option value="" disabled>Select dest location</option>
+            <option *ngFor="let location of destLocationOptions" [value]="location">{{ location }}</option>
+          </select>
+          <ion-icon name="chevron-down-outline"></ion-icon>
+        </div>
+      </label>
+
+      <label class="field">
+        <span>Quantity</span>
+        <input [(ngModel)]="form.quantity" name="quantity" type="number" placeholder="Enter quantity" />
+      </label>
+
+      <label class="field">
+        <span>Notes (Optional)</span>
+        <textarea [(ngModel)]="form.notes" name="notes" rows="3" placeholder="Add a note..."></textarea>
+      </label>
+    </form>
+
+    <button class="submit-button" type="button" (click)="submit()">
+      <span>Receive Stock</span>
+    </button>
+  </div>
+</ion-content>
+
+<div class="scanner-overlay" *ngIf="isScannerOpen">
+  <div class="scanner-dialog">
+    <div class="scanner-top">
+      <strong>Scan Barcode</strong>
+      <button type="button" class="scanner-close" (click)="stopScanner()" aria-label="Tutup scanner">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+    </div>
+
+    <video #scannerVideo autoplay playsinline muted></video>
+    <p>{{ scanMessage }}</p>
+  </div>
+</div>

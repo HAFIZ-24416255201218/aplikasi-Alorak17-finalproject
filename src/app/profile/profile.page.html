@@ -1,0 +1,99 @@
+<ion-content [fullscreen]="false" class="profile-content">
+  <div class="profile-shell">
+    <section class="profile-hero">
+      <div class="hero-copy">
+        <p>Profil Saya</p>
+        <span>Pengaturan akun & preferensi</span>
+      </div>
+    </section>
+
+    <div class="profile-card modern">
+      <div class="profile-main">
+        <div class="avatar-box initials">
+          <span>{{ profileInitials }}</span>
+        </div>
+        <div class="profile-meta">
+          <h1>{{ username }}</h1>
+          <p>{{ email }}</p>
+          <div class="profile-tags">
+            <span class="role">{{ role }}</span>
+            <span class="status">{{ status }}</span>
+          </div>
+        </div>
+        <button class="edit-button" type="button" aria-label="Edit profile" (click)="openEditProfile()">
+          <ion-icon name="create-outline"></ion-icon>
+        </button>
+      </div>
+    </div>
+
+    <div class="metric-strip profile-metrics">
+      <div class="metric-card compact" *ngFor="let stat of stats">
+        <div class="metric-value">{{ stat.value }}</div>
+        <div class="metric-label">{{ stat.label }}</div>
+      </div>
+    </div>
+
+    <section class="section-block">
+      <h2>SETTINGS</h2>
+      <div class="panel">
+        <button class="setting-row" type="button">
+          <div class="setting-left">
+            <ion-icon [name]="darkMode ? 'moon-outline' : 'sunny-outline'"></ion-icon>
+            <span>Dark Mode</span>
+          </div>
+          <ion-toggle aria-label="Toggle dark mode" [checked]="darkMode" (ionChange)="toggleDarkMode($event)"></ion-toggle>
+        </button>
+
+        <button class="setting-row" type="button" (click)="openNotifications()">
+          <div class="setting-left">
+            <ion-icon name="notifications-outline"></ion-icon>
+            <span>Notifications</span>
+          </div>
+          <ion-icon name="chevron-forward-outline"></ion-icon>
+        </button>
+
+        <button class="setting-row" type="button" (click)="openHelpSupport()">
+          <div class="setting-left">
+            <ion-icon name="help-circle-outline"></ion-icon>
+            <span>Help & Support</span>
+          </div>
+          <ion-icon name="chevron-forward-outline"></ion-icon>
+        </button>
+
+        <button class="setting-row" type="button" (click)="openAboutApp()">
+          <div class="setting-left">
+            <ion-icon name="information-circle-outline"></ion-icon>
+            <span>Tentang Aplikasi</span>
+          </div>
+          <ion-icon name="chevron-forward-outline"></ion-icon>
+        </button>
+      </div>
+    </section>
+
+    <button class="signout-button" type="button" (click)="logout()">
+      <ion-icon name="log-out-outline"></ion-icon>
+      <span>Sign Out</span>
+    </button>
+  </div>
+</ion-content>
+
+<ion-footer class="footer-nav">
+  <div class="nav-wrapper">
+    <div class="nav-item" (click)="goToHome()">
+      <ion-icon name="home-outline"></ion-icon>
+      <span>Dashboard</span>
+    </div>
+    <div class="nav-item" (click)="goToInventory()">
+      <ion-icon name="layers-outline"></ion-icon>
+      <span>Inventory</span>
+    </div>
+    <div class="nav-item" (click)="goToHistory()">
+      <ion-icon name="time-outline"></ion-icon>
+      <span>History</span>
+    </div>
+    <div class="nav-item active">
+      <ion-icon name="person-outline"></ion-icon>
+      <span>Profile</span>
+    </div>
+  </div>
+</ion-footer>

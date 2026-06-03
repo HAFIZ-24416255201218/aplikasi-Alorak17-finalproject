@@ -1,0 +1,189 @@
+<ion-content [fullscreen]="true" class="history-content">
+  <div class="history-top">
+    <div class="history-title-row">
+      <button
+        class="back-button"
+        type="button"
+        aria-label="Kembali ke detail barang"
+        *ngIf="productIdFilter"
+        (click)="goBackToProductDetail()"
+      >
+        <ion-icon name="chevron-back-outline"></ion-icon>
+      </button>
+
+      <div class="title-copy">
+        <h1>{{ productNameFilter ? 'Riwayat Produk' : 'Riwayat Transaksi' }}</h1>
+        <p>{{ productNameFilter || (transactions.length + ' transaksi tercatat') }}</p>
+      </div>
+
+      <button class="download-button" type="button" aria-label="Unduh riwayat transaksi" (click)="exportHistory()">
+        <ion-icon name="download-outline"></ion-icon>
+      </button>
+    </div>
+
+    <div class="search-box">
+      <ion-icon name="search-outline"></ion-icon>
+      <input
+        [(ngModel)]="searchQuery"
+        (input)="filterTransactions()"
+        type="text"
+        placeholder="Cari nama atau kode barang..."
+      />
+    </div>
+  </div>
+
+  <div class="history-shell">
+    <!-- Stats Cards -->
+    <div class="stats-container">
+      <div class="stat-card total">
+        <div class="stat-icon">
+          <ion-icon name="receipt-outline"></ion-icon>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">Transaksi</div>
+          <div class="stat-value">{{ stats.total }}</div>
+        </div>
+      </div>
+
+      <div class="stat-card in">
+        <div class="stat-icon">
+          <ion-icon name="arrow-down-outline"></ion-icon>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">Barang Masuk</div>
+          <div class="stat-value">{{ stats.in }}</div>
+        </div>
+      </div>
+
+      <div class="stat-card out">
+        <div class="stat-icon">
+          <ion-icon name="arrow-up-outline"></ion-icon>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">Barang Keluar</div>
+          <div class="stat-value">{{ stats.out }}</div>
+        </div>
+      </div>
+
+      <div class="stat-card move">
+        <div class="stat-icon">
+          <ion-icon name="swap-horizontal-outline"></ion-icon>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">Barang Berpindah</div>
+          <div class="stat-value">{{ stats.move }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs-container">
+      <button
+        class="tab-button"
+        [class.active]="activeTab === 'all'"
+        (click)="selectTab('all')"
+      >
+        Semua
+      </button>
+      <button
+        class="tab-button"
+        [class.active]="activeTab === 'in'"
+        (click)="selectTab('in')"
+      >
+        Masuk
+      </button>
+      <button
+        class="tab-button"
+        [class.active]="activeTab === 'out'"
+        (click)="selectTab('out')"
+      >
+        Keluar
+      </button>
+      <button
+        class="tab-button"
+        [class.active]="activeTab === 'move'"
+        (click)="selectTab('move')"
+      >
+        Berpindah
+      </button>
+    </div>
+
+    <!-- Transaction List -->
+    <div class="history-day" *ngFor="let group of transactionGroups">
+      <div class="day-title">
+        <div class="day-label">
+          <ion-icon name="calendar-outline"></ion-icon>
+          <span>{{ group.label }}</span>
+        </div>
+        <span class="day-count">{{ group.transactions.length }} transaksi</span>
+      </div>
+
+      <div class="timeline">
+        <div class="timeline-item" *ngFor="let transaction of group.transactions" [ngClass]="getCardClass(transaction.type)">
+          <div class="timeline-dot"></div>
+
+          <div class="transaction-card">
+            <div class="transaction-icon">
+              <ion-icon
+                [name]="transaction.type === 'in' ? 'arrow-down-outline' : transaction.type === 'out' ? 'arrow-up-outline' : 'swap-horizontal-outline'">
+              </ion-icon>
+            </div>
+
+            <div class="transaction-body">
+              <div class="transaction-top">
+                <div class="transaction-main">
+                  <h3>{{ transaction.name }}</h3>
+                  <div class="meta-row">
+                    <span><ion-icon name="time-outline"></ion-icon>{{ transaction.time }}</span>
+                    <span><ion-icon name="person-outline"></ion-icon>{{ transaction.operator }}</span>
+                  </div>
+                  <div class="route-row">
+                    <ion-icon name="location-outline"></ion-icon>
+                    <span>
+                      <span *ngIf="transaction.type === 'move'">{{ transaction.route }}</span>
+                      <span *ngIf="transaction.type !== 'move'">{{ transaction.route }}</span>
+                    </span>
+                  </div>
+                </div>
+
+                <div class="amount">
+                  {{ transaction.amount }}
+                </div>
+              </div>
+
+              <div class="note-box" *ngIf="transaction.note">
+                {{ transaction.note }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="empty-state" *ngIf="transactionGroups.length === 0">
+      <ion-icon name="inbox-outline"></ion-icon>
+      <p>Tidak ada transaksi</p>
+    </div>
+  </div>
+</ion-content>
+
+<ion-footer class="footer-nav">
+  <div class="nav-wrapper">
+    <div class="nav-item" (click)="goToHome()">
+      <ion-icon name="home-outline"></ion-icon>
+      <span>Dashboard</span>
+    </div>
+    <div class="nav-item" (click)="goToInventory()">
+      <ion-icon name="layers-outline"></ion-icon>
+      <span>Inventory</span>
+    </div>
+    <div class="nav-item active">
+      <ion-icon name="time-outline"></ion-icon>
+      <span>History</span>
+    </div>
+    <div class="nav-item" (click)="goToProfile()">
+      <ion-icon name="person-outline"></ion-icon>
+      <span>Profile</span>
+    </div>
+  </div>
+</ion-footer>

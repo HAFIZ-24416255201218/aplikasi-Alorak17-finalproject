@@ -1,0 +1,44 @@
+<main class="onboarding-page">
+  <section
+    class="onboarding-card"
+    (touchstart)="onTouchStart($event)"
+    (touchend)="onTouchEnd($event)"
+    aria-label="Onboarding aplikasi gudang"
+  >
+    <div class="slider-window">
+      <div class="slider-track" [style.transform]="'translateX(-' + currentIndex * 100 + '%)'">
+        <article class="slide" *ngFor="let slide of slides">
+          <div class="image-shell">
+            <img [src]="slide.image" [alt]="slide.imageAlt" />
+          </div>
+
+          <div class="slide-copy">
+            <span class="eyebrow">Alorack17 Warehouse</span>
+            <h1>{{ slide.title }}</h1>
+            <p>{{ slide.description }}</p>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <div class="pagination" aria-label="Navigasi slide">
+      <button
+        class="dot"
+        type="button"
+        *ngFor="let slide of slides; let index = index"
+        [class.active]="currentIndex === index"
+        (click)="goToSlide(index)"
+        [attr.aria-label]="'Buka slide ' + (index + 1)"
+      ></button>
+    </div>
+
+    <div class="actions" [class.single-action]="isFirstSlide">
+      <button class="secondary-button" type="button" (click)="previousSlide()" *ngIf="!isFirstSlide">
+        Kembali
+      </button>
+      <button class="primary-button" type="button" (click)="nextSlide()">
+        {{ isLastSlide ? 'Mulai Sekarang' : 'Lanjut' }}
+      </button>
+    </div>
+  </section>
+</main>

@@ -1,0 +1,39 @@
+<ion-app class="app-container">
+  <nav class="sidebar-nav" id="sidebarNav" *ngIf="!isAuthPage">
+    <div class="sidebar-header">
+      <img src="assets\logobaru.png" alt="GudangKu" class="brand-logo" />
+    </div>
+    <div class="nav-menu">
+      <p class="nav-section-title">Menu Utama</p>
+      <a class="nav-link" [routerLink]="['/dashboard']" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+        <ion-icon name="grid-outline"></ion-icon>
+        <span>Dashboard</span>
+      </a>
+      <a class="nav-link" [routerLink]="['/inventory']" routerLinkActive="active">
+        <ion-icon name="cube-outline"></ion-icon>
+        <span>Inventori</span>
+      </a>
+      <a class="nav-link" [routerLink]="['/history']" routerLinkActive="active">
+        <ion-icon name="refresh-outline"></ion-icon>
+        <span>Riwayat</span>
+      </a>
+      <a class="nav-link" [routerLink]="['/profile']" routerLinkActive="active">
+        <ion-icon name="person-outline"></ion-icon>
+        <span>Profil</span>
+      </a>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-avatar">{{ userInitials }}</div>
+      <div class="user-meta">
+        <strong>{{ username }}</strong>
+        <span>{{ userRole }}</span>
+      </div>
+      <button class="logout-button" type="button" aria-label="Logout" (click)="logout()">
+        <ion-icon name="log-out-outline"></ion-icon>
+      </button>
+    </div>
+  </nav>
+  <div class="app-content" [class.auth-content]="isAuthPage">
+    <ion-router-outlet></ion-router-outlet>
+  </div>
+</ion-app>

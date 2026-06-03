@@ -1,0 +1,65 @@
+<ion-content [fullscreen]="false" class="goods-out-content">
+  <div class="goods-out-shell">
+    <div class="goods-out-header">
+      <div class="title-group">
+        <div class="title-icon">
+          <ion-icon name="arrow-up-outline"></ion-icon>
+        </div>
+        <h1>Goods Out</h1>
+      </div>
+
+      <button class="close-button" type="button" (click)="close()" aria-label="Close">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+    </div>
+
+    <form class="goods-form">
+      <label class="field">
+        <span>Select Item</span>
+        <div class="select-wrap">
+          <select [(ngModel)]="form.selectedItem" name="selectedItem">
+            <option value="" selected disabled>Choose an item...</option>
+            <option *ngFor="let item of inventoryItems" [value]="item.id">{{ item.name }} - {{ item.sku }}</option>
+          </select>
+          <ion-icon name="chevron-down-outline"></ion-icon>
+        </div>
+      </label>
+
+      <div class="release-preview" *ngIf="selectedItem as item">
+        <div class="preview-icon">
+          <ion-icon name="cube-outline"></ion-icon>
+        </div>
+        <div>
+          <h2>{{ item.name }}</h2>
+          <p>{{ item.sku }} · {{ item.location }}</p>
+        </div>
+        <strong>{{ item.quantity }} {{ item.unit }}</strong>
+      </div>
+
+      <label class="field">
+        <span>Quantity</span>
+        <input [(ngModel)]="form.quantity" name="quantity" type="number" placeholder="Enter quantity" />
+      </label>
+
+      <label class="field">
+        <span>From Location</span>
+        <div class="select-wrap">
+          <select [(ngModel)]="form.fromLocation" name="fromLocation">
+            <option value="" selected disabled>Choose source location...</option>
+            <option *ngFor="let location of sourceLocationOptions" [value]="location">{{ location }}</option>
+          </select>
+          <ion-icon name="chevron-down-outline"></ion-icon>
+        </div>
+      </label>
+
+      <label class="field">
+        <span>Notes (Optional)</span>
+        <textarea [(ngModel)]="form.notes" name="notes" rows="3" placeholder="Add a note..."></textarea>
+      </label>
+    </form>
+
+    <button class="submit-button" type="button" (click)="submit()">
+      <span>Release Stock</span>
+    </button>
+  </div>
+</ion-content>

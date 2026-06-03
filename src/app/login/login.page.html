@@ -1,0 +1,108 @@
+<ion-content>
+  <div class="login-container">
+    <!-- Form Section -->
+    <div class="form-section">
+      <!-- Logo Section -->
+      <div class="logo-section">
+        <div class="logo-box">
+          <img src="assets\logobaru.png" alt="WMS Operator Logo" class="logo-image" />
+        </div>
+        <div class="brand-copy">
+          <h1 class="app-title">WMS Operator</h1>
+          <p class="app-subtitle">Warehouse Management System</p>
+        </div>
+      </div>
+
+      <form [formGroup]="loginForm">
+        <!-- Error Message -->
+        <div *ngIf="errorMessage" class="error-message">
+          {{ errorMessage }}
+        </div>
+
+        <!-- Email Field -->
+        <div class="form-group">
+          <label for="email" class="form-label">Email</label>
+          <input
+            id="email"
+            type="email"
+            formControlName="email"
+            class="form-input"
+            placeholder="Masukkan email Anda"
+            autocomplete="email"
+          />
+          <div
+            *ngIf="
+              loginForm.get('email')?.invalid &&
+              loginForm.get('email')?.touched
+            "
+            class="error-text"
+          >
+            Email tidak valid
+          </div>
+        </div>
+
+        <!-- Password Field -->
+        <div class="form-group">
+          <label for="password" class="form-label">Password</label>
+          <div class="password-input-wrapper">
+            <input
+              id="password"
+              [type]="showPassword ? 'text' : 'password'"
+              formControlName="password"
+              class="form-input"
+              placeholder="Masukkan password Anda"
+              autocomplete="current-password"
+            />
+            <button
+              type="button"
+              class="password-toggle"
+              (click)="togglePasswordVisibility()"
+              *ngIf="loginForm.get('password')?.value"
+            >
+              <ion-icon
+                [name]="showPassword ? 'eye-off' : 'eye'"
+              ></ion-icon>
+            </button>
+          </div>
+          <div
+            *ngIf="
+              loginForm.get('password')?.invalid &&
+              loginForm.get('password')?.touched
+            "
+            class="error-text"
+          >
+            Password minimal 6 karakter
+          </div>
+        </div>
+
+        <!-- Sign In Button -->
+        <button
+          type="button"
+          class="sign-in-button"
+          (click)="onLogin()"
+          [disabled]="loginForm.invalid || loading"
+        >
+          <ion-spinner
+            *ngIf="loading"
+            name="crescent"
+            class="button-spinner"
+          ></ion-spinner>
+          <span *ngIf="!loading">Sign In</span>
+          <span *ngIf="loading">Loading...</span>
+        </button>
+
+        <!-- Register Link -->
+        <div class="register-link-section">
+          <span class="register-text">Belum punya akun? </span>
+          <button
+            type="button"
+            class="register-link"
+            (click)="goToRegister()"
+          >
+            Daftar di sini
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</ion-content>

@@ -1,0 +1,308 @@
+/*
+ * App Global CSS
+ * ----------------------------------------------------------------------------
+ * Put style rules here that you want to apply globally. These styles are for
+ * the entire app and not just one component. Additionally, this file can be
+ * used as an entry point to import other CSS/Sass files to be included in the
+ * output CSS.
+ * For more information on global stylesheets, visit the documentation:
+ * https://ionicframework.com/docs/layout/global-stylesheets
+ */
+
+/* Core CSS required for Ionic components to work properly */
+@import "@ionic/angular/css/core.css";
+
+/* Basic CSS for apps built with Ionic */
+@import "@ionic/angular/css/normalize.css";
+@import "@ionic/angular/css/structure.css";
+@import "@ionic/angular/css/typography.css";
+@import "@ionic/angular/css/display.css";
+
+/* Optional CSS utils that can be commented out */
+@import "@ionic/angular/css/padding.css";
+@import "@ionic/angular/css/float-elements.css";
+@import "@ionic/angular/css/text-alignment.css";
+@import "@ionic/angular/css/text-transformation.css";
+@import "@ionic/angular/css/flex-utils.css";
+
+/**
+ * Ionic Dark Mode
+ * -----------------------------------------------------
+ * For more info, please see:
+ * https://ionicframework.com/docs/theming/dark-mode
+ */
+
+/* @import "@ionic/angular/css/palettes/dark.always.css"; */
+@import "@ionic/angular/css/palettes/dark.class.css";
+/* @import "@ionic/angular/css/palettes/dark.system.css"; */
+
+// Global Layout Styles
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+ion-app {
+  width: 100%;
+  height: 100%;
+}
+
+ion-router-outlet {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  box-sizing: border-box;
+}
+
+ion-header {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+ion-content {
+  --overflow: auto;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  box-sizing: border-box;
+  --padding-left: 0;
+  --padding-right: 0;
+}
+
+ion-footer {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.app-dark-mode {
+  background: #0f172a;
+
+  ion-content {
+    --background: #0f172a;
+    color: #e5e7eb;
+  }
+
+  ion-header,
+  ion-toolbar,
+  ion-footer,
+  .footer-nav {
+    --background: #111827;
+    background: #111827 !important;
+    border-color: #253044 !important;
+    color: #e5e7eb;
+  }
+
+  .dashboard-content,
+  .profile-content,
+  .inventory-content,
+  .history-content,
+  .detail-content,
+  .edit-profile-content,
+  .notifications-content,
+  .help-content,
+  .about-content,
+  .goods-in-content,
+  .goods-out-content,
+  .stock-mutation-content {
+    --background: #0f172a !important;
+  }
+
+  .quick-actions-section,
+  .low-stock-section,
+  .recent-activity-section,
+  .stat-card,
+  .profile-card,
+  .metric-card,
+  .panel,
+  .stock-item,
+  .activity-item,
+  .product-card,
+  .inventory-card,
+  .detail-card,
+  .form-card,
+  .notification-card,
+  .support-card,
+  .about-card,
+  .info-card,
+  .summary-card,
+  .edit-card {
+    background: #182235 !important;
+    border-color: #253044 !important;
+    color: #e5e7eb !important;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.24) !important;
+  }
+
+  h1,
+  h2,
+  h3,
+  p,
+  span,
+  label,
+  .stat-value,
+  .metric-value,
+  .activity-name,
+  .profile-meta h1,
+  .setting-row {
+    color: #e5e7eb;
+  }
+
+  .section-title,
+  .stat-label,
+  .metric-label,
+  .profile-meta p,
+  .activity-time,
+  .stock-count,
+  .nav-item {
+    color: #9ca3af !important;
+  }
+
+  .nav-item.active,
+  .nav-item.active ion-icon {
+    color: #60a5fa !important;
+  }
+
+  .setting-row + .setting-row,
+  .quick-actions-section,
+  .low-stock-section,
+  .recent-activity-section {
+    border-color: #253044 !important;
+  }
+
+  input,
+  textarea,
+  select,
+  ion-input,
+  ion-textarea,
+  ion-select,
+  ion-item {
+    --background: #111827;
+    --color: #e5e7eb;
+    --placeholder-color: #94a3b8;
+    color: #e5e7eb;
+  }
+}
+
+.exit-app-alert {
+  --backdrop-opacity: 0.42;
+
+  .alert-wrapper {
+    width: calc(100% - 40px);
+    max-width: 360px;
+    border-radius: 20px;
+    overflow: hidden;
+    background: #ffffff;
+    box-shadow: 0 24px 56px rgba(15, 23, 42, 0.3);
+  }
+
+  .alert-head {
+    padding: 24px 24px 6px;
+    text-align: left;
+  }
+
+  .alert-title {
+    color: #172033;
+    font-size: 19px;
+    font-weight: 900;
+    line-height: 1.2;
+  }
+
+  .alert-sub-title {
+    margin-top: 8px;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+
+  .alert-message {
+    padding: 12px 24px 4px;
+    color: #334155;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.45;
+    max-height: none;
+  }
+
+  .alert-button-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 20px 20px 20px;
+    gap: 10px;
+  }
+
+  .alert-button {
+    width: 100%;
+    min-height: 44px;
+    border-radius: 12px;
+    color: #2563eb;
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: none;
+  }
+
+  .alert-button-role-cancel {
+    background: #eef2f7;
+    color: #475569;
+  }
+
+  .exit-confirm-button {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: #ffffff;
+    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.22);
+  }
+}
+
+.app-dark-mode .exit-app-alert {
+  .alert-wrapper {
+    background: #182235;
+  }
+
+  .alert-title {
+    color: #f8fafc;
+  }
+
+  .alert-sub-title,
+  .alert-message {
+    color: #cbd5e1;
+  }
+
+  .alert-button-role-cancel {
+    background: #253044;
+    color: #dbe4ef;
+  }
+}
+
+// Ensure footer nav only shows on mobile
+@media (min-width: 768px) {
+  ion-footer {
+    display: none !important;
+  }
+
+  .app-content ion-router-outlet {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .app-content ion-router-outlet > .ion-page,
+  .app-content ion-router-outlet .ion-page {
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .app-content ion-content {
+    width: 100%;
+    max-width: 100%;
+  }
+}

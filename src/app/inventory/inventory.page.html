@@ -1,0 +1,151 @@
+<ion-content [fullscreen]="true" class="inventory-content">
+  <div class="inventory-top">
+    <div class="inventory-title-row">
+      <div>
+        <h1>Inventori</h1>
+        <p>{{ itemCount }} jenis barang terdaftar</p>
+      </div>
+
+      <button class="add-button" type="button" (click)="goToGoodsIn()">
+        <ion-icon name="add-outline"></ion-icon>
+        <span>Tambah</span>
+      </button>
+    </div>
+
+    <div class="search-row">
+      <div class="search-box">
+        <ion-icon name="search-outline"></ion-icon>
+        <input [(ngModel)]="searchTerm" type="text" placeholder="Cari nama atau kode barang..." />
+      </div>
+      <button
+        class="category-filter-button"
+        type="button"
+        (click)="toggleCategoryPanel()"
+        [class.active]="isCategoryPanelOpen || selectedCategory !== 'all'"
+        title="Daftar kategori"
+        aria-label="Buka daftar kategori"
+      >
+        <ion-icon name="funnel"></ion-icon>
+      </button>
+      <button class="barcode-scan-button" type="button" (click)="openBarcodeScanner()" title="Scan barcode">
+        <ion-icon name="scan-outline"></ion-icon>
+      </button>
+    </div>
+  </div>
+
+  <section *ngIf="isCategoryPanelOpen" class="category-panel" aria-label="Daftar kategori">
+    <div class="category-panel-header">
+      <h2>Daftar Kategori</h2>
+      <button type="button" (click)="resetCategory()">Ulang</button>
+    </div>
+
+    <div class="category-search-box">
+      <ion-icon name="search-outline"></ion-icon>
+      <input [(ngModel)]="categorySearchTerm" type="text" placeholder="Cari" />
+    </div>
+
+    <div class="category-list">
+      <button
+        *ngFor="let category of filteredCategoryOptions"
+        type="button"
+        class="category-option"
+        [class.active]="selectedCategory === category.name"
+        (click)="selectCategory(category.name)"
+      >
+        <span>{{ category.name }}</span>
+        <strong>{{ category.count }}</strong>
+      </button>
+    </div>
+
+    <button class="save-category-button" type="button" (click)="closeCategoryPanel()">Simpan</button>
+  </section>
+
+  <div class="sort-strip" aria-label="Urutkan inventori">
+    <button
+      *ngFor="let option of filterOptions"
+      type="button"
+      class="sort-chip"
+      [class.active]="selectedSort === option.id"
+      (click)="selectSort(option.id)"
+    >
+      {{ option.label }}
+    </button>
+  </div>
+
+  <div class="inventory-shell">
+    <div class="active-sort-label">
+      <span>Urutkan Berdasarkan</span>
+      <strong>{{ selectedSortLabel }}<ng-container *ngIf="selectedCategory !== 'all'"> · {{ selectedCategoryLabel }}</ng-container></strong>
+    </div>
+
+    <div class="inventory-list">
+      <button class="inventory-card" type="button" *ngFor="let item of filteredItems" (click)="openItemDetail(item.id)">
+        <div class="item-badge" [ngClass]="item.badgeClass">
+          <img *ngIf="item.imageData; else itemIcon" [src]="item.imageData" [alt]="item.name" />
+          <ng-template #itemIcon>
+            <ion-icon [name]="item.icon"></ion-icon>
+          </ng-template>
+        </div>
+
+        <div class="item-details">
+          <h3>{{ item.name }}</h3>
+          <span class="category-tag">{{ item.category || 'Umum' }}</span>
+          <div class="item-meta">
+            <span>{{ item.sku }}</span>
+            <span class="dot"></span>
+            <ion-icon name="location-outline"></ion-icon>
+            <span>{{ item.location }}</span>
+          </div>
+        </div>
+
+        <div class="item-stock">
+          <span class="stock-value" [ngClass]="item.quantityClass">{{ item.quantity }}</span>
+          <span class="stock-unit">{{ item.unit }}</span>
+        </div>
+
+        <ion-icon class="chevron-icon" name="chevron-forward-outline"></ion-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- Barcode Scanner Modal -->
+  <div *ngIf="showBarcodeScanner" class="barcode-scanner-overlay">
+    <div class="barcode-scanner-container">
+      <div class="scanner-header">
+        <h2>Scan Barcode</h2>
+        <button class="close-button" type="button" (click)="closeBarcodeScanner()">
+          <ion-icon name="close-outline"></ion-icon>
+        </button>
+      </div>
+      
+      <div class="scanner-content">
+        <video #video class="camera-feed" playsinline></video>
+        <div class="scanner-overlay">
+          <div class="scanner-frame"></div>
+        </div>
+        <p class="scanner-hint">Arahkan kamera ke barcode</p>
+      </div>
+    </div>
+  </div>
+</ion-content>
+
+<ion-footer class="footer-nav">
+  <div class="nav-wrapper">
+    <div class="nav-item" (click)="goToHome()">
+      <ion-icon name="home-outline"></ion-icon>
+      <span>Dashboard</span>
+    </div>
+    <div class="nav-item active">
+      <ion-icon name="layers-outline"></ion-icon>
+      <span>Inventory</span>
+    </div>
+    <div class="nav-item" (click)="goToHistory()">
+      <ion-icon name="time-outline"></ion-icon>
+      <span>History</span>
+    </div>
+    <div class="nav-item" (click)="goToProfile()">
+      <ion-icon name="person-outline"></ion-icon>
+      <span>Profile</span>
+    </div>
+  </div>
+</ion-footer>

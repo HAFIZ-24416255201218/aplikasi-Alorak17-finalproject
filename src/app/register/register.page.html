@@ -1,0 +1,185 @@
+<ion-content>
+  <div class="register-container">
+    <!-- Form Section -->
+    <div class="form-section">
+      <!-- Logo Section -->
+      <div class="logo-section">
+        <div class="logo-box">
+          <img src="assets\logobaru.png" alt="WMS Operator Logo" class="logo-image" />
+        </div>
+        <div class="brand-copy">
+          <h1 class="app-title">WMS Operator</h1>
+          <p class="app-subtitle">Warehouse Management System</p>
+        </div>
+      </div>
+
+      <form [formGroup]="registerForm">
+        <!-- Success Message -->
+        <div *ngIf="successMessage" class="success-message">
+          {{ successMessage }}
+        </div>
+
+        <!-- Error Message -->
+        <div *ngIf="errorMessage" class="error-message">
+          {{ errorMessage }}
+        </div>
+
+        <!-- Full Name Field -->
+        <div class="form-group">
+          <label for="fullName" class="form-label">Nama Lengkap</label>
+          <input
+            id="fullName"
+            type="text"
+            formControlName="fullName"
+            class="form-input"
+            placeholder="Masukkan nama lengkap"
+            autocomplete="name"
+          />
+          <div
+            *ngIf="
+              registerForm.get('fullName')?.invalid &&
+              registerForm.get('fullName')?.touched
+            "
+            class="error-text"
+          >
+            <span *ngIf="registerForm.get('fullName')?.errors?.['required']"
+              >Nama lengkap wajib diisi</span
+            >
+            <span *ngIf="registerForm.get('fullName')?.errors?.['minlength']"
+              >Nama minimal 3 karakter</span
+            >
+          </div>
+        </div>
+
+        <!-- Email Field -->
+        <div class="form-group">
+          <label for="email" class="form-label">Email</label>
+          <input
+            id="email"
+            type="email"
+            formControlName="email"
+            class="form-input"
+            placeholder="Masukkan email Anda"
+            autocomplete="email"
+          />
+          <div
+            *ngIf="
+              registerForm.get('email')?.invalid &&
+              registerForm.get('email')?.touched
+            "
+            class="error-text"
+          >
+            Email tidak valid
+          </div>
+        </div>
+
+        <!-- Password Field -->
+        <div class="form-group">
+          <label for="password" class="form-label">Password</label>
+          <div class="password-input-wrapper">
+            <input
+              id="password"
+              [type]="showPassword ? 'text' : 'password'"
+              formControlName="password"
+              class="form-input"
+              placeholder="Minimal 6 karakter"
+              autocomplete="new-password"
+            />
+            <button
+              type="button"
+              class="password-toggle"
+              (click)="togglePasswordVisibility('password')"
+              *ngIf="registerForm.get('password')?.value"
+            >
+              <ion-icon
+                [name]="showPassword ? 'eye-off' : 'eye'"
+              ></ion-icon>
+            </button>
+          </div>
+          <div
+            *ngIf="
+              registerForm.get('password')?.invalid &&
+              registerForm.get('password')?.touched
+            "
+            class="error-text"
+          >
+            Password minimal 6 karakter
+          </div>
+        </div>
+
+        <!-- Confirm Password Field -->
+        <div class="form-group">
+          <label for="confirmPassword" class="form-label">Konfirmasi Password</label>
+          <div class="password-input-wrapper">
+            <input
+              id="confirmPassword"
+              [type]="showConfirmPassword ? 'text' : 'password'"
+              formControlName="confirmPassword"
+              class="form-input"
+              placeholder="Ulangi password Anda"
+              autocomplete="new-password"
+            />
+            <button
+              type="button"
+              class="password-toggle"
+              (click)="togglePasswordVisibility('confirmPassword')"
+              *ngIf="registerForm.get('confirmPassword')?.value"
+            >
+              <ion-icon
+                [name]="showConfirmPassword ? 'eye-off' : 'eye'"
+              ></ion-icon>
+            </button>
+          </div>
+          <div
+            *ngIf="
+              registerForm.get('confirmPassword')?.invalid &&
+              registerForm.get('confirmPassword')?.touched
+            "
+            class="error-text"
+          >
+            <span *ngIf="registerForm.get('confirmPassword')?.errors?.['required']"
+              >Konfirmasi password wajib diisi</span
+            >
+          </div>
+          <div
+            *ngIf="
+              registerForm.errors?.['passwordMismatch'] &&
+              registerForm.get('confirmPassword')?.touched
+            "
+            class="error-text"
+          >
+            Password tidak cocok
+          </div>
+        </div>
+
+        <!-- Register Button -->
+        <button
+          type="button"
+          class="register-button"
+          (click)="onRegister()"
+          [disabled]="registerForm.invalid || loading"
+        >
+          <ion-spinner
+            *ngIf="loading"
+            name="crescent"
+            class="button-spinner"
+          ></ion-spinner>
+          <span *ngIf="!loading">Daftar</span>
+          <span *ngIf="loading">Loading...</span>
+        </button>
+
+        <!-- Login Link -->
+        <div class="login-link-section">
+          <span class="login-text">Sudah punya akun? </span>
+          <button
+            type="button"
+            class="login-link"
+            (click)="goToLogin()"
+          >
+            Masuk di sini
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</ion-content>

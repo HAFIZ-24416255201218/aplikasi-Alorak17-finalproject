@@ -1,0 +1,7 @@
+{
+  "name": "GudangFp",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}

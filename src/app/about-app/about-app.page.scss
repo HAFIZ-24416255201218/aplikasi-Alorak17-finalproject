@@ -1,0 +1,361 @@
+.about-content {
+  --background: #f5f7fc;
+  --padding-bottom: 24px;
+}
+
+.about-shell {
+  padding: 10px 0 20px;
+}
+
+.about-header {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 10px;
+  margin-bottom: 20px;
+
+  h1 {
+    margin: 0;
+    color: #1f2937;
+    font-size: 22px;
+    font-weight: 800;
+    text-align: center;
+  }
+}
+
+.icon-button {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(28, 39, 60, 0.08);
+
+  ion-icon {
+    font-size: 20px;
+  }
+}
+
+/* Hero Card */
+.hero-card {
+  background: linear-gradient(135deg, #2358ff 0%, #4e30f3 100%);
+  border-radius: 20px;
+  padding: 32px 20px;
+  margin: 0 10px 24px;
+  text-align: center;
+  color: #ffffff;
+  box-shadow: 0 10px 30px rgba(35, 88, 255, 0.2);
+}
+
+.hero-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+
+  ion-icon {
+    color: #ffffff;
+  }
+}
+
+.hero-card h2 {
+  margin: 0 0 8px;
+  font-size: 32px;
+  font-weight: 900;
+}
+
+.app-tagline {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.92;
+  font-weight: 600;
+}
+
+/* Info Box */
+.info-box {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 16px;
+  margin: 0 10px 24px;
+  box-shadow: 0 2px 10px rgba(28, 39, 60, 0.08);
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f1f3;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  .label {
+    color: #7e889b;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  strong {
+    color: #263040;
+    font-size: 15px;
+    font-weight: 800;
+  }
+}
+
+/* Sections */
+section {
+  padding: 0 10px 24px;
+}
+
+section h3 {
+  margin: 0 0 16px;
+  color: #1f2937;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.description-section {
+  padding-bottom: 24px;
+}
+
+.about-gudang-card {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: #ffffff;
+  border: 1px solid rgba(219, 226, 239, 0.9);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 8px 22px rgba(28, 39, 60, 0.08);
+
+  h3 {
+    margin-bottom: 10px;
+  }
+
+  p {
+    margin: 0;
+    color: #4b5563;
+    font-size: 14px;
+    line-height: 1.65;
+    text-align: justify;
+  }
+}
+
+.about-gudang-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #e8efff 0%, #ecfbf7 100%);
+  color: #2358ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  ion-icon {
+    font-size: 24px;
+  }
+}
+
+/* Features Grid */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.feature-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 16px 12px;
+  box-shadow: 0 2px 10px rgba(28, 39, 60, 0.08);
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(28, 39, 60, 0.12);
+  }
+}
+
+.feature-icon {
+  font-size: 32px;
+  color: #2358ff;
+  margin-bottom: 10px;
+
+  ion-icon {
+    display: block;
+  }
+}
+
+.feature-content h4 {
+  margin: 0 0 6px;
+  color: #263040;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.feature-content p {
+  margin: 0;
+  color: #7e889b;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* Benefits */
+.benefit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.benefit-item {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 14px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  box-shadow: 0 2px 10px rgba(28, 39, 60, 0.08);
+
+  ion-icon {
+    font-size: 20px;
+    color: #16a34a;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  span {
+    color: #263040;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+}
+
+/* Contact Section */
+.contact-section {
+  background: linear-gradient(135deg, rgba(35, 88, 255, 0.05) 0%, rgba(78, 48, 243, 0.05) 100%);
+  border-radius: 16px;
+  border: 1px solid rgba(35, 88, 255, 0.1);
+  margin: 0 10px 24px;
+  padding: 20px;
+
+  h3 {
+    margin: 0 0 16px;
+  }
+}
+
+.contact-box {
+  p {
+    margin: 0 0 4px;
+    color: #4b5563;
+    font-size: 13px;
+    font-weight: 500;
+
+    &:first-child {
+      font-weight: 700;
+      color: #263040;
+    }
+  }
+}
+
+/* Footer Info */
+.footer-info {
+  text-align: center;
+  padding: 0 10px 24px;
+  color: #7e889b;
+  font-size: 12px;
+
+  p {
+    margin: 0;
+  }
+
+  p:first-child {
+    font-weight: 600;
+    color: #4b5563;
+  }
+}
+
+@media (max-width: 600px) {
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .about-gudang-card {
+    flex-direction: column;
+  }
+
+  .hero-card {
+    padding: 24px 16px;
+  }
+
+  .hero-card h2 {
+    font-size: 28px;
+  }
+}
+
+:host-context(.app-dark-mode) {
+  .about-content {
+    --background: #0f172a;
+  }
+
+  .about-header h1,
+  section h3 {
+    color: #e5e7eb;
+  }
+
+  .icon-button,
+  .info-box,
+  .about-gudang-card,
+  .feature-card,
+  .benefit-item {
+    background: #182235;
+    border: 1px solid #253044;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.26);
+  }
+
+  .icon-button {
+    color: #e5e7eb;
+  }
+
+  .info-row {
+    border-bottom-color: #253044;
+  }
+
+  .info-row .label,
+  .about-gudang-card p,
+  .feature-content p,
+  .footer-info,
+  .contact-box p,
+  .contact-box p[style] {
+    color: #cbd5e1 !important;
+  }
+
+  .info-row strong,
+  .about-gudang-card h3,
+  .feature-content h4,
+  .benefit-item span,
+  .contact-box p:first-child,
+  .footer-info p:first-child {
+    color: #e5e7eb !important;
+  }
+
+  .about-gudang-icon {
+    background: rgba(59, 130, 246, 0.16);
+    color: #93c5fd;
+  }
+
+  .feature-icon {
+    color: #93c5fd;
+  }
+
+  .contact-section {
+    background: #111827;
+    border-color: #253044;
+  }
+}

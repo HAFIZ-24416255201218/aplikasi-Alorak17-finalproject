@@ -1,0 +1,76 @@
+<ion-content [fullscreen]="false" class="stock-mutation-content">
+  <div class="stock-mutation-shell">
+    <div class="stock-mutation-header">
+      <div class="title-group">
+        <div class="title-icon">
+          <ion-icon name="arrow-back-outline"></ion-icon>
+        </div>
+        <h1>Stock Mutation</h1>
+      </div>
+
+      <button class="close-button" type="button" (click)="close()" aria-label="Close">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+    </div>
+
+    <form class="goods-form">
+      <label class="field">
+        <span>Select Item</span>
+        <div class="select-wrap">
+          <select [(ngModel)]="form.selectedItem" name="selectedItem" (change)="onSelectItemChange()">
+            <option value="" selected disabled>Choose an item...</option>
+            <option *ngFor="let item of inventoryItems" [value]="item.id">{{ item.name }} - {{ item.sku }}</option>
+          </select>
+          <ion-icon name="chevron-down-outline"></ion-icon>
+        </div>
+      </label>
+
+      <div class="mutation-preview" *ngIf="selectedItem as item">
+        <div>
+          <span>Stok Tersedia</span>
+          <strong>{{ item.quantity }} {{ item.unit }}</strong>
+        </div>
+        <div>
+          <span>Lokasi Saat Ini</span>
+          <strong>{{ item.location }}</strong>
+        </div>
+      </div>
+
+      <label class="field">
+        <span>Quantity</span>
+        <input [(ngModel)]="form.quantity" name="quantity" type="text" placeholder="Enter quantity" />
+      </label>
+
+      <label class="field">
+        <span>From Location</span>
+        <div class="select-wrap">
+          <select [(ngModel)]="form.fromLocation" name="fromLocation">
+            <option value="" selected disabled>Choose source location...</option>
+            <option *ngFor="let location of sourceLocationOptions" [value]="location.value">{{ location.label }}</option>
+          </select>
+          <ion-icon name="chevron-down-outline"></ion-icon>
+        </div>
+      </label>
+
+      <label class="field">
+        <span>To Location</span>
+        <div class="select-wrap">
+          <select [(ngModel)]="form.toLocation" name="toLocation">
+            <option value="" selected disabled>Choose destination location...</option>
+            <option *ngFor="let location of destinationLocationOptions" [value]="location.value">{{ location.label }}</option>
+          </select>
+          <ion-icon name="chevron-down-outline"></ion-icon>
+        </div>
+      </label>
+
+      <label class="field">
+        <span>Notes (Optional)</span>
+        <textarea [(ngModel)]="form.notes" name="notes" rows="3" placeholder="Add a note..."></textarea>
+      </label>
+    </form>
+
+    <button class="submit-button" type="button" (click)="submit()">
+      <span>Move Stock</span>
+    </button>
+  </div>
+</ion-content>
