@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { map, catchError, timeout } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { LocationService, LocationItem } from '../services/location.service';
 import { AuthService } from '../services/auth.service';
@@ -155,7 +155,9 @@ export class TransactionService {
       notes: transactionData.notes || undefined,
     };
 
-    return this.http.post(`${this.apiUrl}/operator/transactions`, payload);
+    return this.http.post(`${this.apiUrl}/operator/transactions`, payload).pipe(
+      timeout(20000)
+    );
   }
 
   getTransactionsByProduct(productId: string, sku?: string, name?: string): Observable<TransactionItem[]> {

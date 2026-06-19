@@ -117,8 +117,8 @@
       </label>
     </form>
 
-    <button class="submit-button" type="button" (click)="submit()">
-      <span>Simpan Barang Masuk</span>
+    <button class="submit-button" type="button" (click)="submit()" [disabled]="isSubmitting">
+      <span>{{ isSubmitting ? 'Menyimpan...' : 'Simpan Barang Masuk' }}</span>
     </button>
   </div>
 </ion-content>

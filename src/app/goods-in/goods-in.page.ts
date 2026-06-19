@@ -66,6 +66,7 @@ export class GoodsInPage {
   ];
 
   isScannerOpen = false;
+  isSubmitting = false;
   scanMessage = 'Arahkan kamera ke barcode produk.';
   barcodeLookupMessage = '';
   inventoryItems: InventoryItem[] = [];
@@ -355,6 +356,10 @@ export class GoodsInPage {
 
 
   submit() {
+    if (this.isSubmitting) {
+      return;
+    }
+
     const quantity = Number(this.form.quantity);
     const minThreshold = Number(this.form.minThreshold);
     const mediumThreshold = Number(this.form.mediumThreshold);
@@ -379,6 +384,8 @@ export class GoodsInPage {
       window.alert('Batas stok sedang harus lebih besar dari batas minimum stok.');
       return;
     }
+
+    this.isSubmitting = true;
 
     const existingItem = this.findExistingItemForSubmit();
 
@@ -406,12 +413,14 @@ export class GoodsInPage {
   private createNewItem(quantity: number, barcodeValue: string, minThreshold: number, mediumThreshold: number) {
       if (!this.form.itemName.trim()) {
         window.alert('Barang belum terdaftar. Lengkapi nama barang terlebih dahulu untuk membuat data barang baru.');
+        this.isSubmitting = false;
         return;
       }
 
       const selectedCategoryId = this.getSelectedCategoryId();
       if (!selectedCategoryId) {
         window.alert('Kategori belum valid dari server. Buka ulang halaman Barang Masuk, pilih kategori dari daftar, atau minta admin membuat kategori di web.');
+        this.isSubmitting = false;
         return;
       }
 
@@ -439,6 +448,7 @@ export class GoodsInPage {
           const newId = String(createdPayload.id || createdPayload.item_id || createdPayload.item?.id || '').trim();
           if (!newId) {
             window.alert('Barang berhasil dibuat, tetapi ID barang dari server kosong. Refresh inventori lalu coba catat barang masuk lagi.');
+            this.isSubmitting = false;
             return;
           }
 
@@ -685,6 +695,7 @@ export class GoodsInPage {
         return;
       }
 
+      this.isSubmitting = false;
       alert(this.createSaveErrorMessage(error));
     });
   }
@@ -705,6 +716,7 @@ export class GoodsInPage {
         this.router.navigate(['/inventory']);
       },
       error: (error: any) => {
+        this.isSubmitting = false;
         console.error('Transaction failed:', error);
         let errMsg = 'Barang sudah terdaftar, tetapi transaksi barang masuk gagal dicatat.';
         if (error?.error?.message) {

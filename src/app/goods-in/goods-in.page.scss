@@ -263,6 +263,10 @@
   box-shadow: 0 10px 24px rgba(22, 163, 74, 0.24);
 }
 
+.submit-button:disabled {
+  opacity: 0.65;
+}
+
 .scanner-overlay {
   position: fixed;
   inset: 0;
