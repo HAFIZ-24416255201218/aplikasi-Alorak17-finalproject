@@ -41,7 +41,6 @@
   }
 }
 
-/* Hero Card */
 .hero-card {
   background: linear-gradient(135deg, #2358ff 0%, #4e30f3 100%);
   border-radius: 20px;
@@ -74,7 +73,6 @@
   font-weight: 600;
 }
 
-/* Info Box */
 .info-box {
   background: #ffffff;
   border-radius: 14px;
@@ -107,7 +105,6 @@
   }
 }
 
-/* Sections */
 section {
   padding: 0 10px 24px;
 }
@@ -162,7 +159,6 @@ section h3 {
   }
 }
 
-/* Features Grid */
 .features-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -206,7 +202,6 @@ section h3 {
   line-height: 1.4;
 }
 
-/* Benefits */
 .benefit-list {
   display: flex;
   flex-direction: column;
@@ -237,7 +232,6 @@ section h3 {
   }
 }
 
-/* Contact Section */
 .contact-section {
   background: linear-gradient(135deg, rgba(35, 88, 255, 0.05) 0%, rgba(78, 48, 243, 0.05) 100%);
   border-radius: 16px;
@@ -264,7 +258,6 @@ section h3 {
   }
 }
 
-/* Footer Info */
 .footer-info {
   text-align: center;
   padding: 0 10px 24px;

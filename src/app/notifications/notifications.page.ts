@@ -35,7 +35,6 @@ export class NotificationsPage implements OnInit, OnDestroy {
       this.notifications = notifications;
     });
 
-    // Trigger Angular change detection for relative time labels every 30 seconds
     this.refreshInterval = setInterval(() => {
       this.notifications = [...this.notifications];
     }, 30000);
@@ -63,7 +62,6 @@ export class NotificationsPage implements OnInit, OnDestroy {
       return 'Baru saja';
     }
 
-    // Replace space with T for browser compatibility if it's "YYYY-MM-DD HH:MM:SS"
     const formattedTimestamp = timestamp.includes(' ') && !timestamp.includes('T')
       ? timestamp.replace(' ', 'T')
       : timestamp;

@@ -416,7 +416,6 @@ export class GoodsInPage {
       }
 
       const selectedLocationName = this.getSelectedLocationName();
-      // Buat item baru terlebih dahulu di backend.
       const newItem: InventoryItem = {
         id: '',
         name: this.form.itemName,
@@ -647,7 +646,6 @@ export class GoodsInPage {
     this.form.unit = existingItem.unit || this.form.unit;
     this.form.category = existingItem.category || this.form.category || '';
 
-    // Jika item sudah ada, cukup tambahkan transaksi supaya barcode yang sama tidak membuat data ganda.
     this.saveDisplayMeta([existingItem.id, existingItem.sku, existingItem.barcode, this.form.itemCode, barcodeValue]);
     this.saveGoodsInTransaction(existingItem.id, quantity);
   }

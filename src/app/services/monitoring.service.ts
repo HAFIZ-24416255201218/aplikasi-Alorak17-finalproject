@@ -109,8 +109,6 @@ export class MonitoringService {
 
   constructor(private http: HttpClient) {}
 
-  // === Admin Monitoring Endpoints ===
-
   getGoodsIn(): Observable<MonitoringTransaction[]> {
     return this.list<MonitoringTransaction>(`${this.apiUrl}/admin/monitoring/goods-in`);
   }
@@ -134,8 +132,6 @@ export class MonitoringService {
     return this.list<InventoryHistoryItem>(`${this.apiUrl}/admin/monitoring/history`);
   }
 
-  // === Admin Stock Endpoints ===
-
   getStocks(): Observable<StockItem[]> {
     return this.list<StockItem>(`${this.apiUrl}/admin/stocks`);
   }
@@ -147,8 +143,6 @@ export class MonitoringService {
   getEmptyStocks(): Observable<StockItem[]> {
     return this.list<StockItem>(`${this.apiUrl}/admin/stocks/empty`);
   }
-
-  // === Operator History Endpoint ===
 
   getOperatorHistory(): Observable<InventoryHistoryItem[]> {
     return this.list<InventoryHistoryItem>(`${this.apiUrl}/operator/history`);

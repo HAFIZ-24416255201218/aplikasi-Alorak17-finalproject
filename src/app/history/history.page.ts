@@ -73,12 +73,10 @@ export class HistoryPage {
       filtered = filtered.filter(t => t.productId === this.productIdFilter);
     }
 
-    // Filter by tab
     if (this.activeTab !== 'all') {
       filtered = filtered.filter(t => t.type === this.activeTab);
     }
 
-    // Filter by search query
     if (this.searchQuery.trim()) {
       const query = this.searchQuery.toLowerCase();
       filtered = filtered.filter(t =>

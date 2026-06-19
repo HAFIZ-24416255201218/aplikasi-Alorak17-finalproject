@@ -5,7 +5,7 @@ export interface PaginatedResponse<T> {
 }
 
 export function firstPageParams() {
-  return { page: '1' };
+  return { page: '1', per_page: '100' };
 }
 
 export function extractList<T>(response: T[] | PaginatedResponse<T>): T[] {

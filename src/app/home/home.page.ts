@@ -62,7 +62,6 @@ export class HomePage implements OnDestroy {
   }
 
   private loadUserData() {
-    // Ambil username dari localStorage
     const storedUsername = localStorage.getItem('username');
     this.username = storedUsername || 'Pengguna';
   }

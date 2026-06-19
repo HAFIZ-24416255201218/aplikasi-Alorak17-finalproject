@@ -167,10 +167,12 @@ export class StockMutationPage {
             : [{ name: selectedItem.location, parentLocation: selectedItem.parentLocation, quantity: selectedItem.quantity }],
           fromLocationOption.label,
           toLocationName,
+          fromLocationVal,
+          toLocationVal,
           quantity
         );
 
-        this.inventoryService.saveItemDisplayMeta([selectedItem.id, selectedItem.sku], {
+        this.inventoryService.saveItemDisplayMeta([selectedItem.id, selectedItem.sku, selectedItem.barcode], {
           location: toLocationName,
           parentLocation: undefined,
           minThreshold: selectedItem.minThreshold,
@@ -201,6 +203,8 @@ export class StockMutationPage {
     locations: InventoryLocation[],
     fromLocation: string,
     toLocation: string,
+    fromBackendValue: string,
+    toBackendValue: string,
     quantity: number
   ): InventoryLocation[] {
     const nextLocations = locations.map(location => ({ ...location, quantity: Number(location.quantity || 0) }));
@@ -211,13 +215,15 @@ export class StockMutationPage {
 
     if (source) {
       source.quantity = Math.max(0, source.quantity - quantity);
+      source.backendValue = source.backendValue || fromBackendValue;
     }
 
     const destination = nextLocations.find(location => this.normalizeLocationPath(this.getLocationPath(location)) === toPath);
     if (destination) {
       destination.quantity += quantity;
+      destination.backendValue = destination.backendValue || toBackendValue;
     } else {
-      nextLocations.push({ ...toLocationParts, quantity });
+      nextLocations.push({ ...toLocationParts, backendValue: toBackendValue, quantity });
     }
 
     return nextLocations.filter(location => location.quantity > 0);

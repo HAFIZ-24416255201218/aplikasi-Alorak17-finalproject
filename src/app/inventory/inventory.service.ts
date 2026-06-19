@@ -71,10 +71,39 @@ export interface LaravelItem {
     name?: string;
     display_name?: string;
   };
+  locations?: LaravelStockLocation[];
+  stock_locations?: LaravelStockLocation[];
+  stockLocations?: LaravelStockLocation[];
+  item_locations?: LaravelStockLocation[];
   location_id?: number | string;
   stock_location_id?: number | string;
   low_stock_alert?: number;
   medium_stock_alert?: number;
+}
+
+export interface LaravelStockLocation {
+  id?: number | string;
+  location_id?: number | string;
+  stock_location_id?: number | string;
+  name?: string;
+  display_name?: string;
+  location_name?: string;
+  quantity?: number | string;
+  stock?: number | string;
+  current_stock?: number | string;
+  stock_quantity?: number | string;
+  location_stock?: number | string;
+  location_quantity?: number | string;
+  available_stock?: number | string;
+  pivot?: {
+    quantity?: number | string;
+    stock?: number | string;
+  };
+  location?: {
+    id?: number | string;
+    name?: string;
+    display_name?: string;
+  };
 }
 
 interface ItemDisplayMeta {
@@ -106,7 +135,9 @@ export class InventoryService {
 
     return this.http.get<LaravelItem[] | PaginatedResponse<LaravelItem>>(endpoint, { params: firstPageParams() }).pipe(
       map(response => this.mergeRecentItems(extractList(response).map(item => this.mapToInventoryItem(item)))),
-      catchError(() => of(this.getRecentItems()))
+      switchMap(items => user?.role === 'admin' ? of(items) : this.applyServerStockLocations(items)),
+      switchMap(items => user?.role === 'admin' ? of(items) : this.applyHistoryLocations(items)),
+      catchError(() => of([]))
     );
   }
 
@@ -144,15 +175,13 @@ export class InventoryService {
       catchError(() =>
         this.http.get<LaravelItem>(`${this.apiUrl}/items/${cleanId}`).pipe(
           map(item => this.mapToInventoryItem(item)),
-          catchError(() => this.findItemLocallyById(cleanId))
+          catchError(() => of(undefined))
         )
       )
     );
   }
 
   getItemBySku(sku: string): Observable<InventoryItem | undefined> {
-    // Di backend, parameter ID digunakan sebagai rujukan utama.
-    // Jika rute mengirimkan SKU or ID, kita panggil endpoint detail.
     const cleanId = sku.startsWith('SKU-') ? sku.replace('SKU-', '') : sku;
     return this.getItemById(cleanId);
   }
@@ -231,11 +260,14 @@ export class InventoryService {
         category_id: categoryId,
         unit: item.unit || 'pcs',
         initial_stock: isNew ? item.quantity || 0 : 0,
-        current_stock: item.quantity || 0,
         status: true,
         low_stock_alert: item.minThreshold,
         medium_stock_alert: item.mediumThreshold,
       };
+
+      if (!isNew) {
+        basePayload.current_stock = item.quantity || 0;
+      }
 
       const request$ = isNew ? (() => {
         const payloadWithBarcode = {
@@ -303,14 +335,13 @@ export class InventoryService {
         if (existingCategory) {
           return of(existingCategory.id);
         } else {
-          // Buat kategori baru di backend
           return this.http.post<LaravelCategory>(`${this.apiUrl}/admin/categories`, {
             name: categoryName,
             description: 'Kategori baru dari frontend',
             status: true,
           }).pipe(
             map(newCategory => newCategory.id),
-            catchError(() => of(1)) // fallback ke id 1
+            catchError(() => of(1))
           );
         }
       }),
@@ -377,17 +408,20 @@ export class InventoryService {
     const backendLocationId = backendLocation.id;
     const hasBackendLocation = !!backendLocationName || !!backendLocationId;
     const backendLocationQuantity = this.extractBackendLocationQuantity(rawItem, item, quantity);
-    const locationName = backendLocationName || (hasBackendLocation ? displayMeta.location : '') || 'Main Warehouse';
+    const backendLocations = this.extractBackendLocations(rawItem, item);
+    const locationName = backendLocationName || 'Main Warehouse';
     const parentLocation = backendLocationName
       ? ''
-      : (hasBackendLocation ? (displayMeta.parentLocation || '') : '');
+      : '';
     const fullLocation = parentLocation && !locationName.includes('/')
       ? `${parentLocation}/${locationName}`
       : locationName;
     const locations = this.normalizeDisplayLocations(
-      backendLocationName
+      backendLocations.length
+        ? backendLocations
+        : backendLocationName
         ? [{ name: backendLocationName, backendValue: backendLocationId, quantity: backendLocationQuantity }]
-        : (hasBackendLocation ? displayMeta.locations : undefined),
+        : undefined,
       locationName,
       parentLocation,
       quantity,
@@ -464,6 +498,77 @@ export class InventoryService {
     return {
       id: id !== undefined && id !== null ? String(id) : undefined,
       name: name ? String(name) : undefined,
+    };
+  }
+
+  private extractBackendLocations(rawItem: LaravelItem, item: LaravelItem): InventoryLocation[] {
+    const raw = rawItem as any;
+    const backendItem = item as any;
+    const candidates = [
+      raw.stock_locations,
+      raw.stockLocations,
+      raw.locations,
+      raw.item_locations,
+      raw.itemLocations,
+      raw.stocks,
+      raw.location_stocks,
+      backendItem.stock_locations,
+      backendItem.stockLocations,
+      backendItem.locations,
+      backendItem.item_locations,
+      backendItem.itemLocations,
+      backendItem.stocks,
+      backendItem.location_stocks,
+    ].find(value => Array.isArray(value)) as LaravelStockLocation[] | undefined;
+
+    if (!candidates?.length) {
+      return [];
+    }
+
+    return candidates
+      .map(location => this.mapBackendStockLocation(location))
+      .filter((location): location is InventoryLocation => !!location);
+  }
+
+  private mapBackendStockLocation(location: LaravelStockLocation): InventoryLocation | undefined {
+    const raw = location as any;
+    const locationObject = raw.location || raw.location_data || raw.stock_location || raw.stockLocation;
+    const id =
+      locationObject?.id ??
+      raw.location_id ??
+      raw.stock_location_id ??
+      raw.locationId ??
+      raw.stockLocationId ??
+      raw.id;
+
+    const name =
+      locationObject?.display_name ||
+      locationObject?.name ||
+      raw.display_name ||
+      raw.name ||
+      raw.location_name ||
+      (id ? `Lokasi ${id}` : '');
+
+    const quantity =
+      raw.stock_quantity ??
+      raw.location_stock ??
+      raw.location_quantity ??
+      raw.available_stock ??
+      raw.current_stock ??
+      raw.quantity ??
+      raw.stock ??
+      raw.pivot?.quantity ??
+      raw.pivot?.stock;
+
+    const normalizedQuantity = Number(quantity || 0);
+    if (!name || normalizedQuantity <= 0) {
+      return undefined;
+    }
+
+    return {
+      name: String(name),
+      backendValue: id !== undefined && id !== null ? String(id) : undefined,
+      quantity: normalizedQuantity,
     };
   }
 
@@ -747,6 +852,61 @@ export class InventoryService {
     }
   }
 
+  private getTrustedDisplayLocations(locations: InventoryLocation[] | undefined, totalQuantity: number): InventoryLocation[] | undefined {
+    if (!locations?.length) {
+      return undefined;
+    }
+
+    const cleanLocations = locations
+      .map(location => ({
+        ...location,
+        backendValue: location.backendValue ? String(location.backendValue) : this.inferBackendLocationValue(location),
+        quantity: Number(location.quantity || 0),
+      }))
+      .filter(location => location.name && location.quantity > 0 && !!location.backendValue);
+
+    const locationTotal = cleanLocations.reduce((total, location) => total + location.quantity, 0);
+
+    return locationTotal === Number(totalQuantity || 0) ? cleanLocations : undefined;
+  }
+
+  private inferBackendLocationValue(location: Pick<InventoryLocation, 'name' | 'parentLocation'>): string | undefined {
+    const path = (location.parentLocation && !location.name.includes('/')
+      ? `${location.parentLocation}/${location.name}`
+      : location.name
+    ).trim().toLowerCase();
+
+    if (/^lokasi\s+\d+$/.test(path)) {
+      return path.replace(/[^\d]/g, '');
+    }
+
+    if (/^\d+$/.test(path)) {
+      return path;
+    }
+
+    if (path === 'main warehouse' || path === 'gudang utama') {
+      return '1';
+    }
+
+    if (path === 'main warehouse/rak a') {
+      return '5';
+    }
+
+    if (path.endsWith('/01') || path === '01') {
+      return '6';
+    }
+
+    if (path.endsWith('/02') || path === '02') {
+      return '7';
+    }
+
+    if (path.endsWith('/03') || path === '03') {
+      return '8';
+    }
+
+    return undefined;
+  }
+
   private getRecentItems(): InventoryItem[] {
     try {
       const recentItems = JSON.parse(localStorage.getItem(this.recentItemsStorageKey) || '[]') || [];
@@ -789,6 +949,252 @@ export class InventoryService {
       barcode: item.barcode || recentItem.barcode,
       notes: item.notes || recentItem.notes,
     };
+  }
+
+  private applyHistoryLocations(items: InventoryItem[]): Observable<InventoryItem[]> {
+    return this.http
+      .get<any[] | PaginatedResponse<any>>(`${this.apiUrl}/operator/history`, { params: firstPageParams() })
+      .pipe(
+        map(response => this.mergeLocationsFromHistory(items, extractList(response))),
+        catchError(() => of(items))
+      );
+  }
+
+  private applyServerStockLocations(items: InventoryItem[]): Observable<InventoryItem[]> {
+    return this.fetchServerStockLocations().pipe(
+      map(records => this.mergeServerStockLocations(items, records)),
+      catchError(() => of(items))
+    );
+  }
+
+  private fetchServerStockLocations(index = 0): Observable<any[]> {
+    const endpoints = [
+      `${this.apiUrl}/operator/stock-locations`,
+      `${this.apiUrl}/operator/stock-location`,
+      `${this.apiUrl}/operator/stocks/locations`,
+      `${this.apiUrl}/stock-locations`,
+      `${this.apiUrl}/stock-location`,
+    ];
+
+    if (index >= endpoints.length) {
+      return of([]);
+    }
+
+    return this.http.get<any[] | PaginatedResponse<any>>(endpoints[index], { params: firstPageParams() }).pipe(
+      map(response => extractList(response)),
+      switchMap(records => records.length ? of(records) : this.fetchServerStockLocations(index + 1)),
+      catchError(() => this.fetchServerStockLocations(index + 1))
+    );
+  }
+
+  private mergeServerStockLocations(items: InventoryItem[], records: any[]): InventoryItem[] {
+    if (!records.length) {
+      return items;
+    }
+
+    const locationMap = new Map<string, InventoryLocation[]>();
+
+    records.forEach(record => {
+      const itemId = this.extractStockLocationItemId(record);
+      const location = this.mapBackendStockLocation(record);
+
+      if (!itemId || !location) {
+        return;
+      }
+
+      const currentLocations = locationMap.get(itemId) || [];
+      currentLocations.push(location);
+      locationMap.set(itemId, currentLocations);
+    });
+
+    return items.map(item => {
+      const locations = locationMap.get(item.id) || [];
+      const total = locations.reduce((sum, location) => sum + Number(location.quantity || 0), 0);
+
+      if (!locations.length || total !== Number(item.quantity || 0)) {
+        return item;
+      }
+
+      return {
+        ...item,
+        location: this.getLocationPath(locations[0]),
+        parentLocation: locations[0].parentLocation,
+        locations,
+      };
+    });
+  }
+
+  private extractStockLocationItemId(record: any): string {
+    const id =
+      record.item_id ??
+      record.itemId ??
+      record.product_id ??
+      record.productId ??
+      record.inventory_item_id ??
+      record.item?.id ??
+      record.product?.id;
+
+    return id !== undefined && id !== null ? String(id) : '';
+  }
+
+  private mergeLocationsFromHistory(items: InventoryItem[], historyItems: any[]): InventoryItem[] {
+    if (!historyItems.length) {
+      return items;
+    }
+
+    const itemIds = new Set(items.map(item => item.id));
+    const locationMaps = new Map<string, Map<string, InventoryLocation>>();
+    const sortedHistory = [...historyItems].sort((a, b) => {
+      const aDate = new Date(a.recorded_at || a.transaction?.date || 0).getTime();
+      const bDate = new Date(b.recorded_at || b.transaction?.date || 0).getTime();
+      return aDate - bDate || Number(a.id || 0) - Number(b.id || 0);
+    });
+
+    sortedHistory.forEach(history => {
+      const itemId = String(history.item_id || history.transaction?.item_id || '').trim();
+      if (!itemIds.has(itemId)) {
+        return;
+      }
+
+      const type = history.type === 'mutation' || history.transaction?.type === 'mutation'
+        ? 'mutation'
+        : (history.type || history.transaction?.type);
+      const quantity = type === 'mutation'
+        ? Math.abs(Number(history.transaction?.quantity ?? history.quantity ?? 0))
+        : Math.abs(Number(history.change_amount ?? history.transaction?.quantity ?? history.quantity ?? 0));
+      if (!quantity) {
+        return;
+      }
+
+      const itemLocations = this.getHistoryLocationMap(locationMaps, itemId);
+      const fromLocation = this.extractHistoryLocation(
+        history.transaction?.from_location_relation || history.transaction?.from_location_data || history.from_location_relation || history.from_location_data,
+        history.transaction?.from_location ?? history.from_location
+      );
+      const toLocation = this.extractHistoryLocation(
+        history.transaction?.to_location_relation || history.transaction?.to_location_data || history.to_location_relation || history.to_location_data,
+        history.transaction?.to_location ?? history.to_location
+      );
+
+      if (type === 'in' && toLocation) {
+        this.addHistoryLocationQuantity(itemLocations, toLocation, quantity);
+        return;
+      }
+
+      if (type === 'out' && fromLocation) {
+        this.subtractHistoryLocationQuantity(itemLocations, fromLocation, quantity);
+        return;
+      }
+
+      if (type === 'mutation' && fromLocation && toLocation) {
+        const movedQuantity = this.subtractHistoryLocationQuantity(itemLocations, fromLocation, quantity);
+        if (movedQuantity > 0) {
+          this.addHistoryLocationQuantity(itemLocations, toLocation, movedQuantity);
+        }
+      }
+    });
+
+    return items.map(item => {
+      const historyLocations = Array.from(locationMaps.get(item.id)?.values() || [])
+        .filter(location => location.quantity > 0);
+      const historyTotal = historyLocations.reduce((total, location) => total + location.quantity, 0);
+      const hasBalancedHistory = historyLocations.length > 0 && historyTotal === Number(item.quantity || 0);
+      const currentLocationTotal = (item.locations || [])
+        .reduce((total, location) => total + Number(location.quantity || 0), 0);
+      const hasServerLocations = !!item.locations?.length &&
+        currentLocationTotal === Number(item.quantity || 0) &&
+        item.locations.every(location => !!location.backendValue);
+      const looksLikeMainWarehouseFallback = item.location === 'Main Warehouse' &&
+        item.locations?.length === 1 &&
+        item.locations[0].backendValue === '1';
+
+      if (hasServerLocations && !(looksLikeMainWarehouseFallback && hasBalancedHistory)) {
+        return item;
+      }
+
+      if (!hasBalancedHistory) {
+        return item;
+      }
+
+      return {
+        ...item,
+        location: this.getLocationPath(historyLocations[0]),
+        parentLocation: historyLocations[0].parentLocation,
+        locations: historyLocations,
+      };
+    });
+  }
+
+  private getHistoryLocationMap(
+    locationMaps: Map<string, Map<string, InventoryLocation>>,
+    itemId: string
+  ): Map<string, InventoryLocation> {
+    if (!locationMaps.has(itemId)) {
+      locationMaps.set(itemId, new Map<string, InventoryLocation>());
+    }
+
+    return locationMaps.get(itemId)!;
+  }
+
+  private extractHistoryLocation(relation: any, rawLocation: any): InventoryLocation | undefined {
+    const id = relation?.id ?? (typeof rawLocation === 'object' ? rawLocation?.id : rawLocation);
+    const name = relation?.display_name || relation?.name ||
+      (typeof rawLocation === 'object' ? (rawLocation.display_name || rawLocation.name) : undefined) ||
+      (id ? `Lokasi ${id}` : '');
+
+    if (!name && !id) {
+      return undefined;
+    }
+
+    return {
+      name: String(name || `Lokasi ${id}`),
+      backendValue: id !== undefined && id !== null ? String(id) : undefined,
+      quantity: 0,
+    };
+  }
+
+  private addHistoryLocationQuantity(
+    locations: Map<string, InventoryLocation>,
+    location: InventoryLocation,
+    quantity: number
+  ): void {
+    const key = this.getHistoryLocationKey(location);
+    const current = locations.get(key) || { ...location, quantity: 0 };
+    current.quantity += quantity;
+    locations.set(key, current);
+  }
+
+  private subtractHistoryLocationQuantity(
+    locations: Map<string, InventoryLocation>,
+    location: InventoryLocation,
+    quantity: number
+  ): number {
+    const key = this.getHistoryLocationKey(location);
+    const current = locations.get(key);
+    if (!current) {
+      return 0;
+    }
+
+    const movedQuantity = Math.min(current.quantity, quantity);
+    current.quantity -= movedQuantity;
+
+    if (current.quantity <= 0) {
+      locations.delete(key);
+    } else {
+      locations.set(key, current);
+    }
+
+    return movedQuantity;
+  }
+
+  private getHistoryLocationKey(location: InventoryLocation): string {
+    return location.backendValue || this.getLocationPath(location).toLowerCase();
+  }
+
+  private getLocationPath(location: Pick<InventoryLocation, 'name' | 'parentLocation'>): string {
+    return location.parentLocation && !location.name.includes('/')
+      ? `${location.parentLocation}/${location.name}`
+      : location.name;
   }
 
   private getItemKeys(item: InventoryItem): string[] {

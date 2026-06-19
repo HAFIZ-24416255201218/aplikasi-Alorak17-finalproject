@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
-import { map, catchError, tap } from 'rxjs/operators';
+import { map, catchError } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { LocationService, LocationItem } from '../services/location.service';
 import { AuthService } from '../services/auth.service';
@@ -58,7 +58,6 @@ export interface LaravelTransaction {
 })
 export class TransactionService {
   private apiUrl = environment.apiUrl;
-  private readonly localTransactionsStorageKey = 'alorack-local-transactions';
 
   constructor(
     private http: HttpClient,
@@ -75,7 +74,7 @@ export class TransactionService {
           .get<InventoryHistoryItem[] | PaginatedResponse<InventoryHistoryItem>>(`${this.apiUrl}/admin/monitoring/history`, { params: firstPageParams() })
           .pipe(
             map(response => extractList(response).map(item => this.mapHistoryToTransactionItem(item))),
-            catchError(() => of(this.getLocalTransactions()))
+            catchError(() => of([]))
           );
       }
 
@@ -124,7 +123,7 @@ export class TransactionService {
   getTransactions(): Observable<TransactionItem[]> {
     return this.http.get<LaravelTransaction[] | PaginatedResponse<LaravelTransaction>>(`${this.apiUrl}/operator/transactions`, { params: firstPageParams() }).pipe(
       map(response => extractList(response).map(t => this.mapToTransactionItem(t))),
-      catchError(() => of(this.getLocalTransactions()))
+      catchError(() => of([]))
     );
   }
 
@@ -156,9 +155,7 @@ export class TransactionService {
       notes: transactionData.notes || undefined,
     };
 
-    return this.http.post(`${this.apiUrl}/operator/transactions`, payload).pipe(
-      tap(() => this.saveLocalTransaction(transactionData, itemId, fromLoc, toLoc))
-    );
+    return this.http.post(`${this.apiUrl}/operator/transactions`, payload);
   }
 
   getTransactionsByProduct(productId: string, sku?: string, name?: string): Observable<TransactionItem[]> {
@@ -177,13 +174,11 @@ export class TransactionService {
     if (!name) return null;
     const cleanName = name.trim();
     
-    // Jika value adalah ID numerik, langsung kembalikan
     if (/^\d+$/.test(cleanName)) {
       return Number(cleanName);
     }
 
     const cleanLower = cleanName.toLowerCase();
-    // Pemetaan nama lokasi Bahasa Indonesia ke Bahasa Inggris seeder
     const searchName = cleanLower
       .replace('gudang utama', 'main warehouse')
       .replace('area receiving', 'receiving area')
@@ -191,11 +186,9 @@ export class TransactionService {
       .replace('packing area', 'packing area')
       .replace('retail outlet', 'retail outlet');
 
-    // Cari lokasi yang mirip
     const found = this.findBestLocationMatch(locations, searchName);
     if (found) return found.id;
     
-    // Jika tidak ditemukan, default ke ID 1 (Main Warehouse)
     return 1;
   }
 
@@ -338,64 +331,4 @@ export class TransactionService {
       .replace('retail outlet', 'retail outlet');
   }
 
-  private saveLocalTransaction(
-    transactionData: {
-      itemId: string;
-      type: TransactionType;
-      quantity: number;
-      notes?: string;
-      fromLocationName?: string;
-      toLocationName?: string;
-      itemName?: string;
-      sku?: string;
-      route?: string;
-    },
-    itemId: number,
-    fromLocation: string | null,
-    toLocation: string | null
-  ): void {
-    const now = new Date();
-    const type = transactionData.type;
-    const route = transactionData.route ||
-      (type === 'move'
-        ? `${transactionData.fromLocationName || this.resolveLocationName(fromLocation)} -> ${transactionData.toLocationName || this.resolveLocationName(toLocation)}`
-        : type === 'in'
-          ? transactionData.toLocationName || this.resolveLocationName(toLocation)
-          : transactionData.fromLocationName || this.resolveLocationName(fromLocation));
-
-    const transaction: TransactionItem = {
-      type,
-      name: transactionData.itemName || `Barang ${itemId}`,
-      productId: String(itemId),
-      sku: transactionData.sku || `SKU-${itemId}`,
-      time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      operator: this.authService.getCurrentUser()?.name || 'Operator',
-      route,
-      amount: type === 'in' ? `+${transactionData.quantity}` : type === 'out' ? `-${transactionData.quantity}` : `${transactionData.quantity}`,
-      note: transactionData.notes,
-      createdAt: now.toISOString(),
-    };
-
-    const transactions = [transaction, ...this.getLocalTransactions()]
-      .filter((item, index, array) =>
-        index === array.findIndex(other =>
-          other.productId === item.productId &&
-          other.type === item.type &&
-          other.amount === item.amount &&
-          other.createdAt === item.createdAt
-        )
-      )
-      .slice(0, 100);
-
-    localStorage.setItem(this.localTransactionsStorageKey, JSON.stringify(transactions));
-  }
-
-  private getLocalTransactions(): TransactionItem[] {
-    try {
-      const transactions = JSON.parse(localStorage.getItem(this.localTransactionsStorageKey) || '[]');
-      return Array.isArray(transactions) ? transactions : [];
-    } catch {
-      return [];
-    }
-  }
 }

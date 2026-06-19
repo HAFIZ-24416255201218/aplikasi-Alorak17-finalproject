@@ -1,4 +1,3 @@
-// Header Styling
 .custom-header {
   --background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
   box-shadow: 0 4px 16px rgba(25, 118, 210, 0.15);
@@ -41,7 +40,6 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
-// Content Styling
 .edit-content {
   --background: #f8fafc;
   --padding-bottom: 140px;
@@ -218,7 +216,6 @@ textarea.form-input {
   }
 }
 
-// Button Group Styling
 .button-group {
   position: fixed;
   bottom: 74px;
@@ -294,7 +291,6 @@ textarea.form-input {
   }
 }
 
-// Footer Navigation Styling
 .footer-nav {
   position: fixed;
   bottom: 0;

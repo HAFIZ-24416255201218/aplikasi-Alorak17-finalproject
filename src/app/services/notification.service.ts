@@ -44,7 +44,6 @@ export class NotificationService {
 
   startPolling() {
     this.stopPolling();
-    // Poll every 15 seconds
     this.pollingSubscription = timer(0, 15000).pipe(
       switchMap(() => {
         const user = this.authService.getCurrentUser();
@@ -100,7 +99,6 @@ export class NotificationService {
             catchError(() => of([]))
           );
         } else {
-          // Operator
           return this.inventoryService.getItems().pipe(
             switchMap(items => {
               const newNotifications: Notification[] = [];
@@ -178,7 +176,6 @@ export class NotificationService {
     this.notificationsSubject.next(sortedNotifications);
     this.unreadCountSubject.next(unreadCount);
 
-    // Check for any new unread notification that hasn't been toasted yet
     sortedNotifications.forEach(notif => {
       if (!notif.read && !this.toastedKeys.has(notif.key)) {
         this.toastedKeys.add(notif.key);
