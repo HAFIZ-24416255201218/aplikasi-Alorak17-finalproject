@@ -13,33 +13,33 @@ export class AboutAppPage {
   features = [
     {
       icon: 'cube-outline',
-      title: 'Manajemen Inventory',
-      description: 'Kelola stok produk dengan mudah dan real-time monitoring'
+      title: 'Manajemen Inventori',
+      description: 'Kelola stok produk dengan mudah dan pantauan waktu nyata'
     },
     {
       icon: 'swap-horizontal-outline',
-      title: 'Stock Mutation',
-      description: 'Pindahkan stok antar lokasi dengan tracking lengkap'
+      title: 'Mutasi Stok',
+      description: 'Pindahkan stok antar lokasi dengan pelacakan lengkap'
     },
     {
       icon: 'arrow-down-outline',
-      title: 'Goods In/Out',
+      title: 'Barang Masuk/Keluar',
       description: 'Catat masuk dan keluarnya barang dari gudang'
     },
     {
       icon: 'time-outline',
       title: 'Riwayat Transaksi',
-      description: 'Lihat history lengkap semua aktivitas gudang'
+      description: 'Lihat riwayat lengkap semua aktivitas gudang'
     },
     {
       icon: 'alert-circle-outline',
-      title: 'Alert Stok',
-      description: 'Notifikasi otomatis untuk stok rendah atau kadaluarsa'
+      title: 'Peringatan Stok',
+      description: 'Notifikasi otomatis untuk stok rendah'
     },
     {
-      icon: 'camera-outline',
-      title: 'Dokumentasi Foto',
-      description: 'Foto produk untuk referensi dan verifikasi stok'
+      icon: 'barcode-outline',
+      title: 'Pindai Barcode',
+      description: 'Bantu isi kode barang lebih cepat melalui kamera'
     }
   ];
 

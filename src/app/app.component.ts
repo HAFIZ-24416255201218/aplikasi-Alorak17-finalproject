@@ -3,6 +3,7 @@ import { App } from '@capacitor/app';
 import { AlertController, Platform } from '@ionic/angular';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
+import { AuthService } from './services/auth.service';
 
 @Component({
   selector: 'app-root',
@@ -20,6 +21,7 @@ export class AppComponent {
     private router: Router,
     private platform: Platform,
     private alertController: AlertController,
+    private authService: AuthService
   ) {
     const darkMode = localStorage.getItem('darkMode') === 'true';
     document.documentElement.classList.toggle('ion-palette-dark', darkMode);
@@ -37,23 +39,19 @@ export class AppComponent {
   }
 
   get isAuthPage(): boolean {
-    const authRoutes = ['/onboarding', '/login', '/register'];
+    const authRoutes = ['/onboarding', '/login'];
     return authRoutes.some(route => this.router.url.startsWith(route));
   }
 
   logout(): void {
-    localStorage.removeItem('isLoggedIn');
-    localStorage.setItem('hasLoggedOut', 'true');
-    this.router.navigate(['/login'], { replaceUrl: true });
+    this.authService.logout();
   }
 
   private keepLoginSession(): void {
     const currentRoute = this.router.url.split('?')[0];
-    const hasSavedAccount = Boolean(localStorage.getItem('email'));
-    const hasLoggedOut = localStorage.getItem('hasLoggedOut') === 'true';
-    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true' || (hasSavedAccount && !hasLoggedOut);
+    const isLoggedIn = this.authService.isLoggedIn();
     const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding') === 'true';
-    const publicRoutes = ['/onboarding', '/login', '/register'];
+    const publicRoutes = ['/onboarding', '/login'];
     const isPublicRoute = publicRoutes.includes(currentRoute);
 
     if (isLoggedIn && isPublicRoute) {
@@ -98,14 +96,15 @@ export class AppComponent {
 
     this.isExitAlertOpen = true;
     const alert = await this.alertController.create({
-      header: 'Keluar aplikasi',
-      subHeader: 'Sesi ini akan ditutup',
+      header: 'Keluar aplikasi?',
+      subHeader: 'Aplikasi akan ditutup',
       cssClass: 'exit-app-alert',
-      message: 'Yakin mau tinggalin aku dan semua barang ini? 🥺',
+      message: 'Pastikan pekerjaan yang sedang berjalan sudah selesai sebelum keluar.',
       buttons: [
         {
           text: 'Batal',
           role: 'cancel',
+          cssClass: 'exit-cancel-button',
           handler: () => {
             this.isExitAlertOpen = false;
           },
@@ -128,11 +127,9 @@ export class AppComponent {
   }
 
   private loadCurrentUser(): void {
-    const storedUsername = localStorage.getItem('username')?.trim();
-    const storedRole = localStorage.getItem('role')?.trim();
-
-    this.username = storedUsername || 'Pengguna';
-    this.userRole = storedRole || 'Admin Gudang';
+    const user = this.authService.getCurrentUser();
+    this.username = user ? user.name : 'Pengguna';
+    this.userRole = this.authService.getFriendlyRole();
     this.userInitials = this.createInitials(this.username);
   }
 

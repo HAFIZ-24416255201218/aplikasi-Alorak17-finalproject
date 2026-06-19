@@ -1,7 +1,17 @@
 import { Component } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { InventoryItem, InventoryLocation, InventoryService } from '../inventory/inventory.service';
 import { TransactionService } from '../transactions/transaction.service';
+import { LocationService, LocationItem } from '../services/location.service';
+import { NotificationService } from '../services/notification.service';
+
+interface LocationOption {
+  value: string;
+  backendValue: string;
+  label: string;
+  quantity: number;
+}
 
 @Component({
   selector: 'app-stock-mutation',
@@ -36,21 +46,31 @@ export class StockMutationPage {
   ];
 
   inventoryItems: InventoryItem[] = [];
+  locationsList: LocationItem[] = [];
+  isSubmitting = false;
 
   constructor(
     private router: Router,
     private inventoryService: InventoryService,
     private transactionService: TransactionService,
+    private locationService: LocationService,
+    private notificationService: NotificationService,
   ) {}
 
   ionViewWillEnter() {
-    this.inventoryItems = this.inventoryService.getItems();
+    this.inventoryService.getItems().subscribe(items => {
+      this.inventoryItems = items;
+    });
+    this.locationService.getLocations().subscribe(locations => {
+      this.locationsList = locations;
+    });
     this.resetForm();
   }
 
   onSelectItemChange() {
-    this.form.fromLocation = '';
+    this.form.fromLocation = this.sourceLocationOptions[0]?.value || '';
     this.form.toLocation = '';
+    this.form.quantity = '';
   }
 
   close() {
@@ -61,7 +81,7 @@ export class StockMutationPage {
     return this.inventoryItems.find(item => item.id === this.form.selectedItem);
   }
 
-  get sourceLocationOptions() {
+  get sourceLocationOptions(): LocationOption[] {
     const item = this.selectedItem;
 
     if (!item) {
@@ -76,75 +96,95 @@ export class StockMutationPage {
   }
 
   get destinationLocationOptions() {
-    const savedLocations = this.inventoryItems.reduce<string[]>((locations, item) => {
-      if (item.locations?.length) {
-        return [...locations, ...item.locations.map(location => location.name)];
-      }
-
-      return [...locations, item.location];
-    }, []);
-
-    return Array.from(new Set([...this.defaultDestLocations, ...savedLocations].filter(Boolean)))
-      .map(location => ({ value: location, label: location }));
+    return this.locationsList.map(loc => ({
+      value: String(loc.id),
+      label: loc.display_name || loc.name,
+    }));
   }
 
   submit() {
-    const selectedItem = this.inventoryService.getItemById(this.form.selectedItem);
-    const quantity = Number(this.form.quantity);
-    const fromLocation = this.form.fromLocation.trim();
-    const toLocation = this.form.toLocation.trim();
-
-    if (!selectedItem || Number.isNaN(quantity) || quantity <= 0 || !fromLocation || !toLocation) {
-      window.alert('Pilih item, isi quantity, lokasi asal, dan lokasi tujuan dengan benar.');
+    if (this.isSubmitting) {
       return;
     }
 
-    if (fromLocation === toLocation) {
-      window.alert('Lokasi tujuan harus berbeda dari lokasi asal.');
+    const selectedItem = this.inventoryItems.find(item => item.id === this.form.selectedItem);
+    const quantity = Number(this.form.quantity);
+    const fromLocationOption = this.sourceLocationOptions.find(location => location.value === this.form.fromLocation);
+    const toLocation = this.form.toLocation.trim();
+
+    if (!selectedItem || Number.isNaN(quantity) || quantity <= 0 || !fromLocationOption || !toLocation) {
+      window.alert('Pilih barang, isi jumlah, lokasi asal, dan lokasi tujuan dengan benar.');
       return;
     }
 
     if (quantity > selectedItem.quantity) {
-      window.alert('Quantity mutasi melebihi stok yang tersedia.');
+      window.alert(`Jumlah mutasi melebihi total stok yang tersedia (${selectedItem.quantity} ${selectedItem.unit}).`);
       return;
     }
 
-    const sourceLocation = selectedItem.locations?.find(location => this.getLocationPath(location) === fromLocation);
-    if (!sourceLocation || quantity > sourceLocation.quantity) {
-      window.alert('Quantity mutasi melebihi stok pada lokasi asal.');
+    if (quantity > fromLocationOption.quantity) {
+      window.alert(`Jumlah mutasi melebihi stok di ${fromLocationOption.label} (${fromLocationOption.quantity} ${selectedItem.unit}).`);
       return;
     }
 
-    const minThreshold = selectedItem.minThreshold || 50;
-    const mediumThreshold = selectedItem.mediumThreshold || 150;
+    const matchingTo = this.locationsList.find(l =>
+      String(l.id) === String(toLocation) ||
+      (l.display_name || l.name).toLowerCase() === toLocation.toLowerCase() ||
+      l.name.toLowerCase() === toLocation.toLowerCase()
+    );
+    const toLocationName = matchingTo ? (matchingTo.display_name || matchingTo.name) : toLocation;
+    const fromLocationVal = fromLocationOption.backendValue || this.resolveBackendLocationValue(fromLocationOption.label);
+    const toLocationVal = matchingTo ? String(matchingTo.id) : (this.resolveBackendLocationValue(toLocationName) || toLocation);
 
-    const nextLocations = this.moveStockBetweenLocations(selectedItem.locations, fromLocation, toLocation, quantity);
-    const nextQuantity = nextLocations.reduce((total, location) => total + location.quantity, 0);
+    if (!/^\d+$/.test(fromLocationVal) || !/^\d+$/.test(toLocationVal)) {
+      window.alert('Lokasi asal atau tujuan belum punya ID valid dari server. Refresh halaman, lalu pilih lokasi dari daftar server.');
+      return;
+    }
 
-    this.inventoryService.upsertItem({
-      ...selectedItem,
-      locations: nextLocations,
-      quantity: nextQuantity,
-      updatedAt: new Date().toISOString(),
-      badgeClass: nextQuantity < minThreshold ? 'badge-red' : nextQuantity < mediumThreshold ? 'badge-yellow' : 'badge-green',
-      quantityClass: nextQuantity < minThreshold ? 'qty-low' : nextQuantity < mediumThreshold ? 'qty-medium' : 'qty-high',
-    });
+    if (this.isSameLocation(fromLocationOption.label, toLocationName, fromLocationVal, toLocationVal)) {
+      window.alert('Lokasi tujuan harus berbeda dari lokasi asal.');
+      return;
+    }
 
-    const createdAt = new Date();
+    this.isSubmitting = true;
+
     this.transactionService.addTransaction({
+      itemId: selectedItem.id,
       type: 'move',
-      name: selectedItem.name,
-      productId: selectedItem.id,
+      quantity: quantity,
+      notes: this.form.notes,
+      fromLocationName: fromLocationVal,
+      toLocationName: toLocationVal,
+      itemName: selectedItem.name,
       sku: selectedItem.sku,
-      time: createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      operator: localStorage.getItem('username') || 'Operator Gudang',
-      route: `${fromLocation} -> ${toLocation}`,
-      amount: `${quantity}`,
-      note: this.form.notes,
-      createdAt: createdAt.toISOString(),
-    });
+      route: `${fromLocationOption.label} -> ${toLocationName}`,
+    }).subscribe({
+      next: () => {
+        this.notificationService.refresh();
+        const nextLocations = this.moveStockBetweenLocations(
+          selectedItem.locations?.length
+            ? selectedItem.locations
+            : [{ name: selectedItem.location, parentLocation: selectedItem.parentLocation, quantity: selectedItem.quantity }],
+          fromLocationOption.label,
+          toLocationName,
+          quantity
+        );
 
-    this.router.navigate(['/inventory-detail', selectedItem.id]);
+        this.inventoryService.saveItemDisplayMeta([selectedItem.id, selectedItem.sku], {
+          location: toLocationName,
+          parentLocation: undefined,
+          minThreshold: selectedItem.minThreshold,
+          mediumThreshold: selectedItem.mediumThreshold,
+          locations: nextLocations,
+        });
+
+        this.router.navigate(['/inventory-detail', selectedItem.id]);
+      },
+      error: error => {
+        this.isSubmitting = false;
+        window.alert(this.createMutationErrorMessage(error));
+      },
+    });
   }
 
   private resetForm() {
@@ -158,24 +198,26 @@ export class StockMutationPage {
   }
 
   private moveStockBetweenLocations(
-    locations: InventoryLocation[] = [],
+    locations: InventoryLocation[],
     fromLocation: string,
     toLocation: string,
-    quantity: number,
-  ) {
-    const nextLocations = locations.map(location => ({ ...location }));
-    const source = nextLocations.find(location => this.getLocationPath(location) === fromLocation);
+    quantity: number
+  ): InventoryLocation[] {
+    const nextLocations = locations.map(location => ({ ...location, quantity: Number(location.quantity || 0) }));
+    const fromPath = this.normalizeLocationPath(fromLocation);
+    const toLocationParts = this.parseLocationPath(toLocation);
+    const toPath = this.normalizeLocationPath(this.getLocationPath(toLocationParts));
+    const source = nextLocations.find(location => this.normalizeLocationPath(this.getLocationPath(location)) === fromPath);
 
     if (source) {
       source.quantity = Math.max(0, source.quantity - quantity);
     }
 
-    const destination = nextLocations.find(location => this.getLocationPath(location) === toLocation);
+    const destination = nextLocations.find(location => this.normalizeLocationPath(this.getLocationPath(location)) === toPath);
     if (destination) {
       destination.quantity += quantity;
     } else {
-      const destinationLocation = this.parseLocationPath(toLocation);
-      nextLocations.push({ ...destinationLocation, quantity });
+      nextLocations.push({ ...toLocationParts, quantity });
     }
 
     return nextLocations.filter(location => location.quantity > 0);
@@ -185,22 +227,131 @@ export class StockMutationPage {
     const options = locations
       .filter(location => location.name)
       .map(location => {
-        const path = this.getLocationPath(location);
-        return { value: path, label: path };
+        const label = this.getLocationPath(location);
+        const backendValue = location.backendValue || this.resolveBackendLocationValue(label);
+        return {
+          value: backendValue || label,
+          backendValue,
+          label,
+          quantity: Number(location.quantity || 0),
+        };
       });
 
-    return Array.from(new Map(options.map(option => [option.value, option])).values());
+    return Array.from(new Map(options.map(option => [option.label, option])).values());
   }
 
   private getLocationPath(location: Pick<InventoryLocation, 'name' | 'parentLocation'>) {
-    return location.parentLocation ? `${location.parentLocation}/${location.name}` : location.name;
+    return location.parentLocation && !location.name.includes('/') ? `${location.parentLocation}/${location.name}` : location.name;
   }
 
   private parseLocationPath(path: string): Pick<InventoryLocation, 'name' | 'parentLocation'> {
-    const parts = path.split('/');
+    const parts = path.split('/').map(part => part.trim()).filter(Boolean);
     const name = parts.pop() || path;
     const parentLocation = parts.join('/');
 
     return parentLocation ? { name, parentLocation } : { name };
+  }
+
+  private normalizeLocationPath(path: string): string {
+    return path
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .replace('gudang utama', 'main warehouse')
+      .replace('area receiving', 'receiving area')
+      .replace('gate inbound', 'receiving area');
+  }
+
+  private resolveBackendLocationValue(locationName: string): string {
+    const cleanName = locationName.trim();
+    const normalizedName = cleanName.toLowerCase();
+
+    if (/^\d+$/.test(cleanName)) {
+      return cleanName;
+    }
+
+    const searchName = normalizedName
+      .replace('gudang utama', 'main warehouse')
+      .replace('area receiving', 'receiving area')
+      .replace('gate inbound', 'receiving area')
+      .replace('packing area', 'packing area')
+      .replace('retail outlet', 'retail outlet');
+
+    const match = this.findBestLocationMatch(searchName);
+
+    return match?.id ? String(match.id) : '';
+  }
+
+  private findBestLocationMatch(searchName: string): LocationItem | undefined {
+    const lastSegment = searchName.split('/').pop()?.trim() || searchName;
+    const candidates = this.locationsList.map(location => ({
+      location,
+      name: location.name.toLowerCase(),
+      displayName: (location.display_name || location.name).toLowerCase(),
+    }));
+
+    return candidates.find(candidate =>
+      candidate.name === searchName || candidate.displayName === searchName
+    )?.location || candidates.find(candidate =>
+      candidate.name === lastSegment || candidate.displayName === lastSegment
+    )?.location || candidates
+      .filter(candidate =>
+        searchName.includes(candidate.name) ||
+        searchName.includes(candidate.displayName) ||
+        candidate.name.includes(searchName) ||
+        candidate.displayName.includes(searchName)
+      )
+      .sort((a, b) => Math.max(b.name.length, b.displayName.length) - Math.max(a.name.length, a.displayName.length))[0]?.location;
+  }
+
+  private isSameLocation(fromLabel: string, toLabel: string, fromValue: string, toValue: string): boolean {
+    const fromBackendId = /^\d+$/.test(fromValue) ? fromValue : '';
+    const toBackendId = /^\d+$/.test(toValue) ? toValue : '';
+
+    if (fromBackendId && toBackendId) {
+      return fromBackendId === toBackendId;
+    }
+
+    return this.normalizeLocationPath(fromLabel) === this.normalizeLocationPath(toLabel);
+  }
+
+  private createMutationErrorMessage(error: unknown) {
+    if (!(error instanceof HttpErrorResponse)) {
+      return 'Gagal memproses mutasi barang.';
+    }
+
+    const validationErrors = error.error?.errors;
+    if (validationErrors) {
+      const firstMessage = Object.values(validationErrors)
+        .reduce<string[]>((messages, value) => {
+          if (Array.isArray(value)) {
+            return [...messages, ...value.filter((message): message is string => typeof message === 'string')];
+          }
+
+          if (typeof value === 'string') {
+            return [...messages, value];
+          }
+
+          return messages;
+        }, [])[0];
+
+      if (firstMessage) {
+        return `Gagal memproses mutasi barang: ${firstMessage}`;
+      }
+    }
+
+    if (error.status === 0) {
+      return 'Gagal memproses mutasi barang. HP tidak bisa terhubung ke server.';
+    }
+
+    if (error.status === 401 || error.status === 403) {
+      return 'Gagal memproses mutasi barang. Akun tidak punya akses transaksi.';
+    }
+
+    if (error.error?.message) {
+      return `Gagal memproses mutasi barang: ${error.error.message}`;
+    }
+
+    return `Gagal memproses mutasi barang. Kode error: ${error.status}.`;
   }
 }

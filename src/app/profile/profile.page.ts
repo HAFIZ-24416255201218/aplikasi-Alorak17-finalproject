@@ -2,6 +2,8 @@ import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { InventoryService } from '../inventory/inventory.service';
 import { TransactionService } from '../transactions/transaction.service';
+import { AuthService } from '../services/auth.service';
+import { forkJoin } from 'rxjs';
 
 @Component({
   selector: 'app-profile',
@@ -29,37 +31,66 @@ export class ProfilePage {
     private router: Router,
     private inventoryService: InventoryService,
     private transactionService: TransactionService,
+    private authService: AuthService
   ) {}
 
   ionViewWillEnter() {
     this.applyDarkMode(this.darkMode);
     this.loadUserProfile();
 
-    const todayTransactions = this.transactionService.getTodayTransactions();
-    const inventoryItems = this.inventoryService.getItems();
-    const totalManagedItems = inventoryItems.length;
-    const totalQuantity = inventoryItems.reduce((sum, item) => sum + item.quantity, 0);
+    forkJoin({
+      items: this.inventoryService.getItems(),
+      transactions: this.transactionService.getTransactions()
+    }).subscribe(({ items, transactions }) => {
+      const todayKey = this.toDateKey(new Date());
+      const todayTransactions = transactions.filter(
+        t => this.toDateKey(new Date(t.createdAt)) === todayKey
+      );
 
-    const itemsIn = this.transactionService.getTodayTotalByType('in');
-    const itemsOut = this.transactionService.getTodayTotalByType('out');
+      const itemsIn = todayTransactions
+        .filter(t => t.type === 'in')
+        .reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
 
-    this.stats = [
-      { value: `${todayTransactions.length}`, label: 'Transaksi' },
-      { value: `${itemsIn}`, label: 'Barang Masuk' },
-      { value: `${itemsOut}`, label: 'Barang Keluar' },
-    ];
+      const itemsOut = todayTransactions
+        .filter(t => t.type === 'out')
+        .reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
 
-    this.totalSKUs = totalManagedItems;
-    this.totalStock = totalQuantity;
+      this.stats = [
+        { value: `${todayTransactions.length}`, label: 'Transaksi' },
+        { value: `${itemsIn}`, label: 'Barang Masuk' },
+        { value: `${itemsOut}`, label: 'Barang Keluar' },
+      ];
+
+      this.totalSKUs = items.length;
+      this.totalStock = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+    });
   }
 
   private loadUserProfile() {
-    const storedUsername = localStorage.getItem('username') || 'Pengguna';
-    const storedEmail = localStorage.getItem('email') || 'pengguna@gudangku.com';
+    this.authService.getProfile().subscribe({
+      next: user => {
+        this.username = user.name;
+        this.email = user.email;
+        this.role = this.authService.getFriendlyRole();
+        this.profileInitials = this.createInitials(user.name);
+      },
+      error: () => {
+        const user = this.authService.getCurrentUser();
+        if (user) {
+          this.username = user.name;
+          this.email = user.email;
+          this.role = this.authService.getFriendlyRole();
+          this.profileInitials = this.createInitials(user.name);
+        }
+      },
+    });
+  }
 
-    this.username = storedUsername;
-    this.email = storedEmail;
-    this.profileInitials = this.createInitials(storedUsername);
+  private toDateKey(date: Date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   private createInitials(name: string) {
@@ -114,8 +145,6 @@ export class ProfilePage {
   }
 
   logout() {
-    localStorage.removeItem('isLoggedIn');
-    localStorage.setItem('hasLoggedOut', 'true');
-    this.router.navigate(['/login'], { replaceUrl: true });
+    this.authService.logout();
   }
 }

@@ -26,25 +26,6 @@
         
         <div class="form-group">
           <label>
-            <ion-icon name="image-outline"></ion-icon>
-            Foto Produk
-          </label>
-          <input #photoInput class="photo-input" type="file" accept="image/*" (change)="onPhotoSelected($event)" />
-          <button class="photo-picker" type="button" (click)="photoInput.click()">
-            <div class="photo-preview" [class.has-photo]="formData.imageData">
-              <img *ngIf="formData.imageData" [src]="formData.imageData" alt="Foto produk {{ formData.name || item.name }}" />
-              <ion-icon *ngIf="!formData.imageData" name="camera-outline"></ion-icon>
-            </div>
-            <div class="photo-copy">
-              <strong>{{ formData.imageData ? 'Ganti foto produk' : 'Tambah foto produk' }}</strong>
-              <span>JPG, PNG, atau foto dari galeri</span>
-            </div>
-            <ion-icon name="chevron-forward-outline"></ion-icon>
-          </button>
-        </div>
-
-        <div class="form-group">
-          <label>
             <ion-icon name="pricetag-outline"></ion-icon>
             Nama Produk
           </label>
@@ -53,21 +34,37 @@
             [(ngModel)]="formData.name"
             name="name"
             placeholder="Masukkan nama produk"
-            class="form-input"
+            class="form-input readonly-input"
+            readonly
           />
         </div>
 
         <div class="form-group">
           <label>
             <ion-icon name="barcode-outline"></ion-icon>
-            Barcode
+            Kode Unik
           </label>
           <input
             type="text"
             [(ngModel)]="formData.sku"
             name="sku"
-            placeholder="Masukkan SKU"
-            class="form-input"
+            placeholder="Kode unik produk"
+            class="form-input readonly-input"
+            readonly
+          />
+        </div>
+
+        <div class="form-group">
+          <label>
+            <ion-icon name="scan-outline"></ion-icon>
+            Kode Batang
+          </label>
+          <input
+            type="text"
+            [value]="formData.barcode || '-'"
+            name="barcode"
+            class="form-input readonly-input"
+            readonly
           />
         </div>
 
@@ -81,46 +78,19 @@
             [(ngModel)]="formData.category"
             name="category"
             placeholder="Masukkan kategori"
-            class="form-input"
+            class="form-input readonly-input"
+            readonly
           />
         </div>
       </div>
 
       <div class="form-section">
         <h3 class="section-title">
-          <ion-icon name="map-outline"></ion-icon>
-          Lokasi & Stok
+          <ion-icon name="settings-outline"></ion-icon>
+          Pengaturan Stok
         </h3>
 
-        <div class="form-group">
-          <label>
-            <ion-icon name="location-outline"></ion-icon>
-            Lokasi
-          </label>
-          <input
-            type="text"
-            [(ngModel)]="formData.location"
-            name="location"
-            placeholder="Masukkan lokasi"
-            class="form-input"
-          />
-        </div>
-
         <div class="form-row">
-          <div class="form-group">
-            <label>
-              <ion-icon name="layers-outline"></ion-icon>
-              Jumlah Stok
-            </label>
-            <input
-              type="number"
-              [(ngModel)]="formData.quantity"
-              name="quantity"
-              placeholder="Jumlah"
-              class="form-input"
-            />
-          </div>
-
           <div class="form-group">
             <label>
               <ion-icon name="settings-outline"></ion-icon>
@@ -131,7 +101,8 @@
               [(ngModel)]="formData.unit"
               name="unit"
               placeholder="pcs, box, dll"
-              class="form-input"
+              class="form-input readonly-input"
+              readonly
             />
           </div>
         </div>
@@ -166,40 +137,6 @@
           </div>
         </div>
       </div>
-
-      <div class="form-section">
-        <h3 class="section-title">
-          <ion-icon name="calendar-outline"></ion-icon>
-          Kadaluarsa & Catatan
-        </h3>
-
-        <div class="form-group">
-          <label>
-            <ion-icon name="calendar-outline"></ion-icon>
-            Tanggal Kadaluarsa
-          </label>
-          <input
-            type="date"
-            [(ngModel)]="formData.expirationDate"
-            name="expirationDate"
-            class="form-input date-input"
-          />
-        </div>
-
-        <div class="form-group">
-          <label>
-            <ion-icon name="document-text-outline"></ion-icon>
-            Catatan
-          </label>
-          <textarea
-            [(ngModel)]="formData.notes"
-            name="notes"
-            placeholder="Masukkan catatan tambahan (opsional)"
-            class="form-input"
-            rows="3"
-          ></textarea>
-        </div>
-      </div>
     </form>
   </div>
 
@@ -221,19 +158,19 @@
   <div class="nav-wrapper">
     <div class="nav-item" (click)="goToHome()">
       <ion-icon name="home-outline"></ion-icon>
-      <span>Dashboard</span>
+      <span>Beranda</span>
     </div>
     <div class="nav-item active">
       <ion-icon name="layers-outline"></ion-icon>
-      <span>Inventory</span>
+      <span>Inventori</span>
     </div>
     <div class="nav-item" (click)="goToHistory()">
       <ion-icon name="time-outline"></ion-icon>
-      <span>History</span>
+      <span>Riwayat</span>
     </div>
     <div class="nav-item" (click)="goToProfile()">
       <ion-icon name="person-outline"></ion-icon>
-      <span>Profile</span>
+      <span>Profil</span>
     </div>
   </div>
 </ion-footer>

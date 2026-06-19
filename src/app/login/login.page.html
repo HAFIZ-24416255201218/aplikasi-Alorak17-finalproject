@@ -1,25 +1,24 @@
 <ion-content>
   <div class="login-container">
-    <!-- Form Section -->
+    <div class="login-ambient" aria-hidden="true"></div>
+
     <div class="form-section">
-      <!-- Logo Section -->
       <div class="logo-section">
         <div class="logo-box">
-          <img src="assets\logobaru.png" alt="WMS Operator Logo" class="logo-image" />
+          <img src="assets/logobaru.png" alt="WMS Operator Logo" class="logo-image" />
         </div>
         <div class="brand-copy">
           <h1 class="app-title">WMS Operator</h1>
-          <p class="app-subtitle">Warehouse Management System</p>
+          <p class="app-subtitle">Akses gudang mobile</p>
         </div>
       </div>
 
       <form [formGroup]="loginForm">
-        <!-- Error Message -->
         <div *ngIf="errorMessage" class="error-message">
+          <ion-icon name="alert-circle-outline"></ion-icon>
           {{ errorMessage }}
         </div>
 
-        <!-- Email Field -->
         <div class="form-group">
           <label for="email" class="form-label">Email</label>
           <input
@@ -41,7 +40,6 @@
           </div>
         </div>
 
-        <!-- Password Field -->
         <div class="form-group">
           <label for="password" class="form-label">Password</label>
           <div class="password-input-wrapper">
@@ -75,7 +73,6 @@
           </div>
         </div>
 
-        <!-- Sign In Button -->
         <button
           type="button"
           class="sign-in-button"
@@ -87,21 +84,9 @@
             name="crescent"
             class="button-spinner"
           ></ion-spinner>
-          <span *ngIf="!loading">Sign In</span>
-          <span *ngIf="loading">Loading...</span>
+          <span *ngIf="!loading">Masuk</span>
+          <span *ngIf="loading">Memuat...</span>
         </button>
-
-        <!-- Register Link -->
-        <div class="register-link-section">
-          <span class="register-text">Belum punya akun? </span>
-          <button
-            type="button"
-            class="register-link"
-            (click)="goToRegister()"
-          >
-            Daftar di sini
-          </button>
-        </div>
       </form>
     </div>
   </div>

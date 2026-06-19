@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-edit-profile',
@@ -17,6 +18,7 @@ export class EditProfilePage {
   constructor(
     private formBuilder: FormBuilder,
     private router: Router,
+    private authService: AuthService
   ) {
     this.profileForm = this.formBuilder.group({
       username: ['', [Validators.required, Validators.minLength(3)]],
@@ -26,9 +28,10 @@ export class EditProfilePage {
   }
 
   ionViewWillEnter() {
+    const user = this.authService.getCurrentUser();
     this.profileForm.patchValue({
-      username: localStorage.getItem('username') || 'Pengguna',
-      email: localStorage.getItem('email') || 'pengguna@gudangku.com',
+      username: user ? user.name : 'Pengguna',
+      email: user ? user.email : 'pengguna@gudangku.com',
       password: '',
     });
     this.successMessage = '';
@@ -46,18 +49,30 @@ export class EditProfilePage {
       return;
     }
 
-    const { username, email } = this.profileForm.value;
+    const { username, email, password } = this.profileForm.value;
 
-    localStorage.setItem('username', username.trim());
-    localStorage.setItem('email', email.trim());
-    localStorage.removeItem('password');
-
-    this.errorMessage = '';
-    this.successMessage = 'Profil berhasil diperbarui.';
-
-    setTimeout(() => {
-      this.router.navigate(['/profile']);
-    }, 500);
+    this.authService.updateProfile({
+      name: username.trim(),
+      email: email.trim(),
+      password: password ? password.trim() : undefined
+    }).subscribe({
+      next: () => {
+        this.errorMessage = '';
+        this.successMessage = 'Profil berhasil diperbarui.';
+        setTimeout(() => {
+          this.router.navigate(['/profile']);
+        }, 800);
+      },
+      error: (err) => {
+        this.successMessage = '';
+        if (err?.error?.message) {
+          this.errorMessage = err.error.message;
+        } else {
+          this.errorMessage = 'Gagal memperbarui profil.';
+        }
+        console.error(err);
+      }
+    });
   }
 
   goBack() {

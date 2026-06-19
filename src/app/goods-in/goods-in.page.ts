@@ -1,8 +1,32 @@
-import { Component, ElementRef, ViewChild } from '@angular/core';
+import { Component, ElementRef, NgZone, ViewChild } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
-import { InventoryItem, InventoryLocation, InventoryService } from '../inventory/inventory.service';
+import { BarcodeFormat, BrowserMultiFormatReader, DecodeHintType, NotFoundException } from '@zxing/library';
+import { InventoryItem, InventoryLocation, InventoryService, LaravelCategory } from '../inventory/inventory.service';
 import { TransactionService } from '../transactions/transaction.service';
+import { LocationService, LocationItem } from '../services/location.service';
+import { NotificationService } from '../services/notification.service';
+
+const BARCODE_HINTS = new Map<DecodeHintType, unknown>([
+  [
+    DecodeHintType.POSSIBLE_FORMATS,
+    [
+      BarcodeFormat.CODE_128,
+      BarcodeFormat.CODE_39,
+      BarcodeFormat.CODE_93,
+      BarcodeFormat.EAN_13,
+      BarcodeFormat.EAN_8,
+      BarcodeFormat.UPC_A,
+      BarcodeFormat.UPC_E,
+      BarcodeFormat.ITF,
+      BarcodeFormat.CODABAR,
+      BarcodeFormat.QR_CODE,
+    ],
+  ],
+  [DecodeHintType.TRY_HARDER, true],
+]);
+
+const BARCODE_FORMATS = ['code_128', 'code_39', 'code_93', 'ean_13', 'ean_8', 'itf', 'qr_code', 'upc_a', 'upc_e', 'codabar'];
 
 @Component({
   selector: 'app-goods-in',
@@ -17,11 +41,11 @@ export class GoodsInPage {
     selectedItem: '',
     itemName: '',
     itemCode: '',
+    barcode: '',
     category: '',
     unit: 'pcs',
-    minThreshold: '50',
-    mediumThreshold: '150',
-    expirationDate: '',
+    minThreshold: '',
+    mediumThreshold: '',
     destLocation: '',
     quantity: '',
     notes: '',
@@ -41,64 +65,59 @@ export class GoodsInPage {
     'Area Receiving',
   ];
 
-  selectedFileName = '';
-  previewImage = '';
   isScannerOpen = false;
   scanMessage = 'Arahkan kamera ke barcode produk.';
+  barcodeLookupMessage = '';
   inventoryItems: InventoryItem[] = [];
+  categoryOptions: LaravelCategory[] = [];
+  locationsList: LocationItem[] = [];
   private barcodeStream?: MediaStream;
-  private scanFrameId?: number;
-  private codeReader = new BrowserMultiFormatReader();
+  private codeReader = new BrowserMultiFormatReader(BARCODE_HINTS, 100);
+  private nativeScanTimer?: number;
+  private lookupTimers: Partial<Record<'barcode' | 'code', number>> = {};
+  private lastLookupKeys: Partial<Record<'barcode' | 'code', string>> = {};
 
   constructor(
     private router: Router,
     private inventoryService: InventoryService,
     private transactionService: TransactionService,
+    private locationService: LocationService,
+    private ngZone: NgZone,
+    private notificationService: NotificationService,
   ) {}
 
   ionViewWillEnter() {
-    this.inventoryItems = this.inventoryService.getItems();
     this.resetForm();
+    this.inventoryService.getItems().subscribe(items => {
+      this.inventoryItems = items;
+    });
+    this.inventoryService.getCategories().subscribe(categories => {
+      this.categoryOptions = categories.filter(category => category.status !== false);
+
+      if (!this.form.category && this.categoryOptions.length) {
+        this.form.category = this.categoryOptions[0].name;
+      }
+    });
+    this.locationService.getLocations().subscribe(locations => {
+      this.locationsList = locations;
+      if (!this.form.destLocation && locations.length) {
+        this.form.destLocation = String(locations[0].id);
+      }
+    });
   }
 
   close() {
     this.router.navigate(['/home']);
   }
 
-  onPhotoSelected(event: Event) {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-
-    if (!file) {
-      return;
-    }
-
-    this.selectedFileName = file.name;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      this.previewImage = typeof reader.result === 'string' ? reader.result : '';
-    };
-    reader.readAsDataURL(file);
-  }
-
   onSelectItem(sku: string) {
-    const selectedItem = this.inventoryService.getItemById(sku);
-    if (!selectedItem) {
-      return;
-    }
+    this.inventoryService.getItemById(sku).subscribe(selectedItem => {
+      if (!selectedItem) {
+        return;
+      }
 
-    this.form.itemName = selectedItem.name;
-    this.form.itemCode = selectedItem.sku;
-    this.form.unit = selectedItem.unit;
-    this.form.category = selectedItem.category || '';
-    this.form.minThreshold = String(selectedItem.minThreshold || 50);
-    this.form.mediumThreshold = String(selectedItem.mediumThreshold || 150);
-    this.form.expirationDate = selectedItem.expirationDate || '';
-    this.form.destLocation = selectedItem.location;
-    this.form.notes = selectedItem.notes || '';
-    this.previewImage = selectedItem.imageData || '';
-    this.selectedFileName = selectedItem.imageData ? 'Foto produk tersimpan' : '';
+      this.fillFormFromItem(selectedItem);
+    });
   }
 
   get destLocationOptions() {
@@ -113,22 +132,43 @@ export class GoodsInPage {
     return Array.from(new Set([...this.defaultDestLocations, ...savedLocations].filter(Boolean)));
   }
 
-  async openDatePicker(input: HTMLInputElement) {
-    if (typeof input.showPicker === 'function') {
-      input.showPicker();
-      return;
-    }
 
-    input.focus();
-    input.click();
-  }
 
   generateItemCode() {
     this.form.itemCode = this.createRandomItemCode();
   }
 
+  lookupExistingItemFromCode() {
+    this.lookupExistingItem(this.form.itemCode, 'code');
+  }
+
+  lookupExistingItemFromBarcode() {
+    this.lookupExistingItem(this.form.barcode, 'barcode');
+  }
+
+  scheduleExistingItemLookup(value: string, source: 'barcode' | 'code') {
+    const cleanValue = String(value || '').trim();
+
+    if (this.lookupTimers[source]) {
+      window.clearTimeout(this.lookupTimers[source]);
+      this.lookupTimers[source] = undefined;
+    }
+
+    if (!cleanValue) {
+      if (source === 'barcode') {
+        this.form.selectedItem = '';
+        this.barcodeLookupMessage = '';
+      }
+      return;
+    }
+
+    this.lookupTimers[source] = window.setTimeout(() => {
+      this.lookupExistingItem(cleanValue, source);
+    }, 450);
+  }
+
   async openBarcodeScanner() {
-    const allowed = window.confirm('izinkan kamera atau tidak');
+    const allowed = window.confirm('Izinkan aplikasi membuka kamera untuk memindai barcode?');
 
     if (!allowed) {
       return;
@@ -143,20 +183,17 @@ export class GoodsInPage {
     this.scanMessage = 'Membuka kamera...';
 
     try {
-      this.barcodeStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' } },
-      });
-
-      const video = this.scannerVideo?.nativeElement;
-      if (!video) {
-        throw new Error('Elemen video tidak ditemukan.');
-      }
+      const video = await this.waitForScannerVideo();
+      this.barcodeStream = await navigator.mediaDevices.getUserMedia(this.getScannerConstraints());
+      await this.optimizeCameraTrack(this.barcodeStream);
 
       video.srcObject = this.barcodeStream;
       await video.play();
-      this.scanMessage = 'Arahkan kamera ke barcode produk.';
-      this.startDetectingBarcode();
-    } catch {
+
+      this.scanMessage = 'Scanner siap. Dekatkan barcode kecil sampai memenuhi kotak, lalu tahan sebentar.';
+      await this.startDetectingBarcode(video, this.barcodeStream);
+    } catch (error) {
+      console.error('Kesalahan membuka scanner barcode:', error);
       this.scanMessage = 'Kamera tidak bisa dibuka.';
       this.stopScanner();
       window.alert('Izin kamera ditolak atau kamera tidak tersedia.');
@@ -164,121 +201,172 @@ export class GoodsInPage {
   }
 
   stopScanner() {
-    if (this.scanFrameId) {
-      cancelAnimationFrame(this.scanFrameId);
-      this.scanFrameId = undefined;
+    if (this.nativeScanTimer) {
+      window.clearInterval(this.nativeScanTimer);
+      this.nativeScanTimer = undefined;
     }
 
-    this.barcodeStream?.getTracks().forEach(track => track.stop());
-    this.barcodeStream = undefined;
     this.isScannerOpen = false;
     this.codeReader.reset();
+    this.barcodeStream?.getTracks().forEach(track => track.stop());
+    this.barcodeStream = undefined;
   }
 
-  private startDetectingBarcode() {
-    const video = this.scannerVideo?.nativeElement;
-
-    if (!video || !this.barcodeStream) {
-      this.scanMessage = 'Kamera tidak ditemukan.';
+  private async startDetectingBarcode(video: HTMLVideoElement, stream: MediaStream) {
+    if (this.startNativeBarcodeDetector(video, stream)) {
       return;
     }
 
-    this.codeReader.decodeFromStream(this.barcodeStream, video, (result, error) => {
+    this.scanMessage = 'Arahkan kamera ke barcode. Untuk barcode kecil, dekatkan perlahan sampai fokus.';
+    await this.startZxingScanner(stream, video);
+  }
+
+  private async startZxingScanner(stream: MediaStream, video: HTMLVideoElement) {
+    await this.codeReader.decodeFromStream(stream, video, (result, error) => {
       if (!this.isScannerOpen) {
         return;
       }
 
       const value = result?.getText();
       if (value) {
-        this.form.itemCode = value;
-        this.stopScanner();
+        this.ngZone.run(() => {
+          this.applyScannedBarcode(value);
+          this.stopScanner();
+        });
         return;
       }
 
       if (error && !(error instanceof NotFoundException)) {
-        this.scanMessage = 'Scan barcode belum berhasil. Coba arahkan ulang kamera.';
+        this.scanMessage = 'Belum terbaca. Jaga barcode tetap rata, terang, dan masuk penuh di kotak.';
       }
-    }).catch(() => {
+    }).catch(error => {
+      console.error('Kesalahan menjalankan scanner barcode:', error);
       this.scanMessage = 'Kamera tidak bisa memulai scanner.';
       this.stopScanner();
       window.alert('Scanner barcode tidak bisa dijalankan.');
     });
   }
 
-  onBarcodeFotoSelected(event: Event) {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
+  private startNativeBarcodeDetector(video: HTMLVideoElement, stream: MediaStream) {
+    const BarcodeDetectorCtor = (window as Window & {
+      BarcodeDetector?: new (options?: { formats?: string[] }) => {
+        detect: (source: ImageBitmapSource) => Promise<Array<{ rawValue?: string }>>;
+      };
+    }).BarcodeDetector;
 
-    if (!file) {
-      return;
+    if (!BarcodeDetectorCtor) {
+      return false;
     }
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const imageData = typeof reader.result === 'string' ? reader.result : '';
-      if (!imageData) {
-        window.alert('Gagal membaca file foto.');
+    const detector = new BarcodeDetectorCtor({
+      formats: BARCODE_FORMATS,
+    });
+
+    this.scanMessage = 'Scanner siap. Dekatkan barcode kecil sampai garisnya terlihat tajam.';
+
+    this.nativeScanTimer = window.setInterval(async () => {
+      if (!this.isScannerOpen || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
         return;
       }
 
-      await this.detectBarcodeFromImage(imageData);
-      // Reset input value so the same file can be selected again
-      input.value = '';
-    };
-    reader.readAsDataURL(file);
+      try {
+        const barcodes = await detector.detect(video);
+        const barcode = barcodes[0]?.rawValue?.trim();
+
+        if (barcode) {
+          this.ngZone.run(() => {
+            this.applyScannedBarcode(barcode);
+            this.stopScanner();
+          });
+        }
+      } catch {
+        window.clearInterval(this.nativeScanTimer);
+        this.nativeScanTimer = undefined;
+        this.ngZone.run(() => {
+          this.scanMessage = 'Scanner bawaan tidak tersedia. Mencoba mode cadangan...';
+          this.startZxingScanner(stream, video);
+        });
+      }
+    }, 120);
+
+    return true;
   }
 
-  private async detectBarcodeFromImage(imageData: string) {
-    const BarcodeDetectorCtor = (window as Window & { BarcodeDetector?: new (options?: { formats?: string[] }) => { detect: (source: ImageBitmapSource) => Promise<Array<{ rawValue?: string }>> } }).BarcodeDetector;
+  private async waitForScannerVideo(): Promise<HTMLVideoElement> {
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      const video = this.scannerVideo?.nativeElement;
 
-    if (!BarcodeDetectorCtor) {
-      window.alert('Browser belum mendukung deteksi barcode otomatis.');
+      if (video) {
+        return video;
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+
+    throw new Error('Elemen video scanner belum siap.');
+  }
+
+  private getScannerConstraints(): MediaStreamConstraints {
+    return {
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        frameRate: { ideal: 30, min: 15 },
+      },
+      audio: false,
+    };
+  }
+
+  private async optimizeCameraTrack(stream: MediaStream) {
+    const track = stream.getVideoTracks()[0];
+
+    if (!track?.getCapabilities || !track.applyConstraints) {
+      return;
+    }
+
+    const capabilities = track.getCapabilities() as MediaTrackCapabilities & {
+      focusMode?: string[];
+      zoom?: { min?: number; max?: number; step?: number };
+      torch?: boolean;
+    };
+    const advanced: Array<Record<string, unknown>> = [];
+
+    if (capabilities.focusMode?.includes('continuous')) {
+      advanced.push({ focusMode: 'continuous' });
+    }
+
+    if (capabilities.zoom?.max && capabilities.zoom.max > 1) {
+      const zoom = Math.min(capabilities.zoom.max, Math.max(capabilities.zoom.min || 1, 1.5));
+      advanced.push({ zoom });
+    }
+
+    if (!advanced.length) {
       return;
     }
 
     try {
-      const img = new Image();
-      img.onload = async () => {
-        try {
-          const detector = new BarcodeDetectorCtor({
-            formats: ['code_128', 'ean_13', 'ean_8', 'qr_code', 'upc_a', 'upc_e'],
-          });
-
-          const barcodes = await detector.detect(img);
-          
-          if (barcodes.length > 0) {
-            this.form.itemCode = barcodes[0].rawValue || '';
-            window.alert(`Barcode terdeteksi: ${this.form.itemCode}`);
-          } else {
-            window.alert('Tidak ada barcode yang terdeteksi di foto ini.');
-          }
-        } catch (error) {
-          window.alert('Gagal melakukan scan barcode dari foto.');
-          console.error('Barcode detection error:', error);
-        }
-      };
-      img.onerror = () => {
-        window.alert('Gagal memuat file foto.');
-      };
-      img.src = imageData;
+      await track.applyConstraints({ advanced } as MediaTrackConstraints);
     } catch (error) {
-      window.alert('Terjadi kesalahan saat memproses foto.');
-      console.error('Image processing error:', error);
+      console.warn('Optimasi kamera barcode tidak didukung perangkat ini:', error);
     }
   }
+
+
 
   submit() {
     const quantity = Number(this.form.quantity);
     const minThreshold = Number(this.form.minThreshold);
     const mediumThreshold = Number(this.form.mediumThreshold);
+    const barcodeValue = this.form.barcode.trim() || this.form.itemCode.trim();
 
-    if (!this.form.itemName || !this.form.itemCode || !this.form.unit || !this.form.destLocation || !quantity) {
-      window.alert('Lengkapi Item Name, Item Code, Unit, Dest Location, dan Quantity terlebih dahulu.');
+    if (!this.form.itemCode || !this.form.unit || !this.form.destLocation || !quantity) {
+      window.alert('Lengkapi kode barang, satuan, lokasi tujuan, dan jumlah terlebih dahulu.');
       return;
     }
 
     if (Number.isNaN(quantity) || quantity <= 0) {
-      window.alert('Quantity harus berupa angka yang valid.');
+      window.alert('Jumlah harus berupa angka yang valid.');
       return;
     }
 
@@ -292,50 +380,76 @@ export class GoodsInPage {
       return;
     }
 
-    const existingItem = this.form.selectedItem
-      ? this.inventoryService.getItemById(this.form.selectedItem)
-      : undefined;
-    const itemId = existingItem?.id || `inv-${Date.now()}`;
-    const nextQuantity = (existingItem?.quantity || 0) + quantity;
-    const locationName = this.form.destLocation.trim();
-    const displayLocation = locationName;
-    const nextLocations = this.addStockToLocation(existingItem?.locations, locationName, quantity);
+    const existingItem = this.findExistingItemForSubmit();
 
-    this.inventoryService.upsertItem({
-      id: itemId,
-      name: this.form.itemName,
-      sku: this.form.itemCode,
-      location: locationName,
-      quantity: nextQuantity,
-      unit: this.form.unit,
-      category: this.form.category.trim() || 'Umum',
-      expirationDate: this.form.expirationDate,
-      notes: this.form.notes,
-      imageData: this.previewImage || existingItem?.imageData,
-      minThreshold,
-      mediumThreshold,
-      locations: nextLocations,
-      updatedAt: new Date().toISOString(),
-      icon: existingItem?.icon || 'cube-outline',
-      badgeClass: nextQuantity < minThreshold ? 'badge-red' : nextQuantity < mediumThreshold ? 'badge-yellow' : 'badge-green',
-      quantityClass: nextQuantity < minThreshold ? 'qty-low' : nextQuantity < mediumThreshold ? 'qty-medium' : 'qty-high',
+    if (existingItem) {
+      this.addGoodsInForExistingItem(existingItem, quantity, barcodeValue);
+      return;
+    }
+
+    this.lookupItemBeforeCreate(barcodeValue).subscribe({
+      next: item => {
+        if (item) {
+          this.inventoryItems = this.upsertLoadedInventoryItem(item);
+          this.addGoodsInForExistingItem(item, quantity, barcodeValue);
+          return;
+        }
+
+        this.createNewItem(quantity, barcodeValue, minThreshold, mediumThreshold);
+      },
+      error: () => {
+        this.createNewItem(quantity, barcodeValue, minThreshold, mediumThreshold);
+      }
     });
+  }
 
-    const createdAt = new Date();
-    this.transactionService.addTransaction({
-      type: 'in',
-      name: this.form.itemName,
-      productId: itemId,
-      sku: this.form.itemCode,
-      time: createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      operator: 'John Operator',
-      route: displayLocation,
-      amount: `+${quantity}`,
-      note: this.form.notes,
-      createdAt: createdAt.toISOString(),
-    });
+  private createNewItem(quantity: number, barcodeValue: string, minThreshold: number, mediumThreshold: number) {
+      if (!this.form.itemName.trim()) {
+        window.alert('Barang belum terdaftar. Lengkapi nama barang terlebih dahulu untuk membuat data barang baru.');
+        return;
+      }
 
-    this.router.navigate(['/inventory']);
+      const selectedCategoryId = this.getSelectedCategoryId();
+      if (!selectedCategoryId) {
+        window.alert('Kategori belum valid dari server. Buka ulang halaman Barang Masuk, pilih kategori dari daftar, atau minta admin membuat kategori di web.');
+        return;
+      }
+
+      const selectedLocationName = this.getSelectedLocationName();
+      // Buat item baru terlebih dahulu di backend.
+      const newItem: InventoryItem = {
+        id: '',
+        name: this.form.itemName,
+        sku: this.form.itemCode,
+        barcode: barcodeValue,
+        location: selectedLocationName,
+        quantity: 0,
+        unit: this.form.unit,
+        category: this.form.category.trim() || 'Umum',
+        categoryId: selectedCategoryId,
+        icon: 'cube-outline',
+        badgeClass: 'badge-green',
+        quantityClass: 'qty-high',
+        minThreshold: minThreshold,
+        mediumThreshold: mediumThreshold
+      };
+
+      this.inventoryService.upsertItem(newItem).subscribe({
+        next: (createdItem: any) => {
+          const createdPayload = createdItem?.data || createdItem?.item || createdItem;
+          const newId = String(createdPayload.id || createdPayload.item_id || createdPayload.item?.id || '').trim();
+          if (!newId) {
+            window.alert('Barang berhasil dibuat, tetapi ID barang dari server kosong. Refresh inventori lalu coba catat barang masuk lagi.');
+            return;
+          }
+
+          this.saveDisplayMeta([newId, this.form.itemCode, barcodeValue, createdPayload.barcode, createdPayload.sku, createdPayload.code]);
+          this.saveGoodsInTransaction(newId, quantity);
+        },
+        error: error => {
+          this.handleCreateItemError(error, quantity);
+        }
+      });
   }
 
   private resetForm() {
@@ -343,17 +457,15 @@ export class GoodsInPage {
       selectedItem: '',
       itemName: '',
       itemCode: this.createRandomItemCode(),
+      barcode: '',
       category: '',
       unit: 'pcs',
       minThreshold: '50',
       mediumThreshold: '150',
-      expirationDate: '',
       destLocation: '',
       quantity: '',
       notes: '',
     };
-    this.selectedFileName = '';
-    this.previewImage = '';
   }
 
   private createRandomItemCode() {
@@ -366,17 +478,325 @@ export class GoodsInPage {
     return `GIN-${datePart}-${randomPart}`;
   }
 
-  private addStockToLocation(locations: InventoryLocation[] = [], locationName: string, quantity: number) {
-    const normalizedName = locationName.trim();
-    const nextLocations = [...locations];
-    const existingLocation = nextLocations.find(location => location.name.toLowerCase() === normalizedName.toLowerCase());
+  private applyScannedBarcode(rawBarcode: string) {
+    const barcode = rawBarcode.trim();
 
-    if (existingLocation) {
-      existingLocation.quantity += quantity;
-      return nextLocations;
+    if (!barcode) {
+      window.alert('Barcode tidak terbaca. Coba scan ulang.');
+      return;
     }
 
-    nextLocations.push({ name: normalizedName, quantity });
-    return nextLocations;
+    this.form.barcode = barcode;
+    this.lookupExistingItem(barcode, 'barcode', true);
+  }
+
+  private lookupExistingItem(rawValue: string, source: 'barcode' | 'code', fromScan = false) {
+    const value = rawValue.trim();
+
+    if (!value) {
+      return;
+    }
+
+    const lookupKey = this.normalizeBarcode(value);
+    if (this.lastLookupKeys[source] === lookupKey && this.form.selectedItem) {
+      return;
+    }
+    this.lastLookupKeys[source] = lookupKey;
+
+    const sourceLabel = source === 'barcode' ? 'barcode' : 'kode barang';
+    this.barcodeLookupMessage = `Mencari barang dari ${sourceLabel}...`;
+
+    const localItem = this.findLoadedItemByCodeOrBarcode(value);
+    if (localItem) {
+      this.fillFormFromItem(localItem, source === 'barcode' ? value : undefined);
+      this.barcodeLookupMessage = 'Barang ditemukan. Data otomatis terisi.';
+      return;
+    }
+
+    const lookup$ = source === 'barcode'
+      ? this.inventoryService.getItemByBarcode(value)
+      : this.inventoryService.getItemById(value);
+
+    lookup$.subscribe({
+      next: item => {
+        if (!item) {
+          if (fromScan || source === 'barcode') {
+            this.form.selectedItem = '';
+            this.barcodeLookupMessage = 'Barang belum terdaftar. Lengkapi data barang baru, lalu simpan.';
+          } else {
+            this.barcodeLookupMessage = 'Kode barang belum terdaftar. Lengkapi data barang baru, lalu simpan.';
+          }
+          return;
+        }
+
+        this.fillFormFromItem(item, source === 'barcode' ? value : undefined);
+        this.barcodeLookupMessage = 'Barang ditemukan. Data otomatis terisi.';
+      },
+      error: () => {
+        this.form.selectedItem = '';
+        this.barcodeLookupMessage = 'Barang belum terdeteksi dari server. Lengkapi data barang baru, lalu simpan.';
+      }
+    });
+  }
+
+  private findLoadedItemByCodeOrBarcode(value: string) {
+    const normalizedValue = this.normalizeBarcode(value);
+
+    return this.inventoryItems.find(item => {
+      const normalizedSku = this.normalizeBarcode(item.sku);
+      const normalizedBarcodeField = item.barcode ? this.normalizeBarcode(item.barcode) : '';
+      const normalizedId = this.normalizeBarcode(item.id);
+      const normalizedName = this.normalizeBarcode(item.name);
+
+      return normalizedSku === normalizedValue ||
+        normalizedBarcodeField === normalizedValue ||
+        normalizedSku.replace(/^sku-/, '') === normalizedValue ||
+        normalizedId === normalizedValue ||
+        normalizedName === normalizedValue;
+    });
+  }
+
+  private fillFormFromItem(item: InventoryItem, scannedBarcode?: string) {
+    this.form.selectedItem = item.id;
+    this.form.itemName = item.name;
+    this.form.itemCode = item.sku;
+    this.form.barcode = scannedBarcode || item.barcode || '';
+    this.form.unit = item.unit;
+    this.form.category = item.category || '';
+    this.form.minThreshold = String(item.minThreshold || 50);
+    this.form.mediumThreshold = String(item.mediumThreshold || 150);
+    this.form.destLocation = this.resolveLocationIdFromName(item.location);
+    this.form.notes = item.notes || '';
+  }
+
+  private resolveLocationIdFromName(name?: string): string {
+    if (!name) return '';
+    const cleanName = name.trim().toLowerCase();
+    
+    if (/^\d+$/.test(cleanName)) {
+      return cleanName;
+    }
+
+    const searchName = cleanName
+      .replace('gudang utama', 'main warehouse')
+      .replace('area receiving', 'receiving area')
+      .replace('gate inbound', 'receiving area')
+      .replace('packing area', 'packing area')
+      .replace('retail outlet', 'retail outlet');
+
+    const found = this.locationsList.find(l => 
+      l.name.toLowerCase() === searchName || 
+      l.name.toLowerCase().includes(searchName) ||
+      (l.display_name && (l.display_name.toLowerCase() === searchName || l.display_name.toLowerCase().includes(searchName)))
+    );
+
+    if (found) {
+      return String(found.id);
+    }
+
+    const partialFound = this.locationsList.find(l => 
+      searchName.includes(l.name.toLowerCase()) || 
+      (l.display_name && searchName.includes(l.display_name.toLowerCase()))
+    );
+
+    if (partialFound) {
+      return String(partialFound.id);
+    }
+
+    return this.locationsList.length ? String(this.locationsList[0].id) : '';
+  }
+
+  private normalizeBarcode(value: string) {
+    return value.trim().toLowerCase();
+  }
+
+  private findExistingItemForSubmit() {
+    if (this.form.selectedItem) {
+      const selectedItem = this.inventoryItems.find(item => item.id === this.form.selectedItem);
+      if (selectedItem) {
+        return selectedItem;
+      }
+    }
+
+    const normalizedCode = this.normalizeBarcode(this.form.itemCode);
+    const normalizedBarcode = this.normalizeBarcode(this.form.barcode);
+    const normalizedName = this.normalizeBarcode(this.form.itemName);
+
+    return this.inventoryItems.find(item =>
+      this.normalizeBarcode(item.sku) === normalizedCode ||
+      (item.barcode && this.normalizeBarcode(item.barcode) === normalizedBarcode) ||
+      this.normalizeBarcode(item.name) === normalizedName
+    );
+  }
+
+  private lookupItemBeforeCreate(barcodeValue: string) {
+    const cleanBarcode = barcodeValue.trim();
+
+    if (cleanBarcode) {
+      return this.inventoryService.getItemByBarcode(cleanBarcode);
+    }
+
+    return this.inventoryService.getItemById(this.form.itemCode);
+  }
+
+  private addGoodsInForExistingItem(existingItem: InventoryItem, quantity: number, barcodeValue: string) {
+    this.form.selectedItem = existingItem.id;
+    this.form.itemName = existingItem.name || this.form.itemName;
+    this.form.itemCode = existingItem.sku || this.form.itemCode;
+    this.form.barcode = this.form.barcode || existingItem.barcode || barcodeValue;
+    this.form.unit = existingItem.unit || this.form.unit;
+    this.form.category = existingItem.category || this.form.category || '';
+
+    // Jika item sudah ada, cukup tambahkan transaksi supaya barcode yang sama tidak membuat data ganda.
+    this.saveDisplayMeta([existingItem.id, existingItem.sku, existingItem.barcode, this.form.itemCode, barcodeValue]);
+    this.saveGoodsInTransaction(existingItem.id, quantity);
+  }
+
+  private upsertLoadedInventoryItem(item: InventoryItem): InventoryItem[] {
+    const itemKeys = [item.id, item.sku, item.barcode]
+      .filter(Boolean)
+      .map(key => this.normalizeBarcode(String(key)));
+
+    const withoutDuplicate = this.inventoryItems.filter(existing => {
+      const existingKeys = [existing.id, existing.sku, existing.barcode]
+        .filter(Boolean)
+        .map(key => this.normalizeBarcode(String(key)));
+
+      return !existingKeys.some(key => itemKeys.includes(key));
+    });
+
+    return [item, ...withoutDuplicate];
+  }
+
+  private getSelectedCategoryId(): number | undefined {
+    const selectedCategoryName = this.form.category.trim().toLowerCase();
+    const selectedCategory = this.categoryOptions.find(category =>
+      category.name.toLowerCase() === selectedCategoryName
+    );
+
+    return selectedCategory?.id;
+  }
+
+  private handleCreateItemError(error: unknown, quantity: number) {
+    this.inventoryService.getItems().subscribe(items => {
+      this.inventoryItems = items;
+      const existingItem = this.findExistingItemForSubmit();
+
+      if (existingItem) {
+        this.saveGoodsInTransaction(existingItem.id, quantity);
+        return;
+      }
+
+      alert(this.createSaveErrorMessage(error));
+    });
+  }
+
+  private saveGoodsInTransaction(itemId: string, quantity: number) {
+    this.transactionService.addTransaction({
+      itemId,
+      type: 'in',
+      quantity,
+      notes: this.form.notes,
+      toLocationName: String(this.form.destLocation),
+      itemName: this.form.itemName,
+      sku: this.form.itemCode,
+      route: this.getSelectedLocationName(),
+    }).subscribe({
+      next: () => {
+        this.notificationService.refresh();
+        this.router.navigate(['/inventory']);
+      },
+      error: (error: any) => {
+        console.error('Transaction failed:', error);
+        let errMsg = 'Barang sudah terdaftar, tetapi transaksi barang masuk gagal dicatat.';
+        if (error?.error?.message) {
+          errMsg += ` (${error.error.message})`;
+        } else if (error?.message) {
+          errMsg += ` (${error.message})`;
+        }
+        alert(errMsg);
+      }
+    });
+  }
+
+  private saveDisplayMeta(keys: Array<string | number | undefined>) {
+    const locationName = this.getSelectedLocationName();
+    const locationId = String(this.form.destLocation || '').trim();
+
+    this.inventoryService.saveItemDisplayMeta(keys, {
+      location: locationName,
+      parentLocation: undefined,
+      minThreshold: Number(this.form.minThreshold),
+      mediumThreshold: Number(this.form.mediumThreshold),
+      locations: [{
+        name: locationName,
+        parentLocation: undefined,
+        backendValue: locationId || undefined,
+        quantity: Number(this.form.quantity || 0),
+      }],
+    });
+  }
+
+  private getSelectedLocationName(): string {
+    const selectedValue = String(this.form.destLocation || '').trim();
+    const selectedLoc = this.locationsList.find(l =>
+      String(l.id) === selectedValue ||
+      this.getLocationLabel(l).toLowerCase() === selectedValue.toLowerCase() ||
+      l.name.toLowerCase() === selectedValue.toLowerCase()
+    );
+
+    return selectedLoc ? this.getLocationLabel(selectedLoc) : (selectedValue || 'Main Warehouse');
+  }
+
+  private getLocationLabel(location: LocationItem): string {
+    return location.display_name || location.name;
+  }
+
+  private createSaveErrorMessage(error: unknown) {
+    if (!(error instanceof HttpErrorResponse)) {
+      if (error instanceof Error) {
+        return `Gagal mendaftarkan barang baru: ${error.message}`;
+      }
+
+      return 'Gagal mendaftarkan barang baru.';
+    }
+
+    const validationErrors = error.error?.errors;
+    if (validationErrors) {
+      const firstMessage = Object.values(validationErrors)
+        .reduce<string[]>((messages, value) => {
+          if (Array.isArray(value)) {
+            return [...messages, ...value.filter((message): message is string => typeof message === 'string')];
+          }
+
+          if (typeof value === 'string') {
+            return [...messages, value];
+          }
+
+          return messages;
+        }, [])[0];
+
+      if (firstMessage) {
+        return `Gagal mendaftarkan barang baru: ${firstMessage}`;
+      }
+    }
+
+    if (error.error?.message) {
+      return `Gagal mendaftarkan barang baru: ${error.error.message}`;
+    }
+
+    if (error.status === 0) {
+      return 'Gagal mendaftarkan barang baru. HP tidak bisa terhubung ke server.';
+    }
+
+    if (error.status === 401 || error.status === 403) {
+      return 'Gagal mendaftarkan barang baru. Akun operator tidak punya akses untuk menambah barang.';
+    }
+
+    if (error.status === 422) {
+      return 'Gagal mendaftarkan barang baru. Data barang belum sesuai aturan server.';
+    }
+
+    return `Gagal mendaftarkan barang baru. Kode error: ${error.status}.`;
   }
 }

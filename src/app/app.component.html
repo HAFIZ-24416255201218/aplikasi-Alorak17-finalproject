@@ -7,7 +7,7 @@
       <p class="nav-section-title">Menu Utama</p>
       <a class="nav-link" [routerLink]="['/dashboard']" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
         <ion-icon name="grid-outline"></ion-icon>
-        <span>Dashboard</span>
+        <span>Beranda</span>
       </a>
       <a class="nav-link" [routerLink]="['/inventory']" routerLinkActive="active">
         <ion-icon name="cube-outline"></ion-icon>
@@ -28,7 +28,7 @@
         <strong>{{ username }}</strong>
         <span>{{ userRole }}</span>
       </div>
-      <button class="logout-button" type="button" aria-label="Logout" (click)="logout()">
+      <button class="logout-button" type="button" aria-label="Keluar" (click)="logout()">
         <ion-icon name="log-out-outline"></ion-icon>
       </button>
     </div>

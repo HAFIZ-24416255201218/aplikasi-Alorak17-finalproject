@@ -5,21 +5,23 @@
         <div class="title-icon">
           <ion-icon name="arrow-back-outline"></ion-icon>
         </div>
-        <h1>Stock Mutation</h1>
+        <h1>Mutasi Stok</h1>
       </div>
 
-      <button class="close-button" type="button" (click)="close()" aria-label="Close">
+      <button class="close-button" type="button" (click)="close()" aria-label="Tutup">
         <ion-icon name="close-outline"></ion-icon>
       </button>
     </div>
 
     <form class="goods-form">
       <label class="field">
-        <span>Select Item</span>
+        <span>Pilih Barang</span>
         <div class="select-wrap">
           <select [(ngModel)]="form.selectedItem" name="selectedItem" (change)="onSelectItemChange()">
-            <option value="" selected disabled>Choose an item...</option>
-            <option *ngFor="let item of inventoryItems" [value]="item.id">{{ item.name }} - {{ item.sku }}</option>
+            <option value="" selected disabled>Pilih barang...</option>
+            <option *ngFor="let item of inventoryItems" [value]="item.id" [disabled]="item.quantity <= 0">
+              {{ item.name }} - {{ item.sku }} ({{ item.quantity }} {{ item.unit }})
+            </option>
           </select>
           <ion-icon name="chevron-down-outline"></ion-icon>
         </div>
@@ -37,26 +39,28 @@
       </div>
 
       <label class="field">
-        <span>Quantity</span>
-        <input [(ngModel)]="form.quantity" name="quantity" type="text" placeholder="Enter quantity" />
+        <span>Jumlah</span>
+        <input [(ngModel)]="form.quantity" name="quantity" type="number" min="1" placeholder="Masukkan jumlah" />
       </label>
 
       <label class="field">
-        <span>From Location</span>
+        <span>Dari Lokasi</span>
         <div class="select-wrap">
           <select [(ngModel)]="form.fromLocation" name="fromLocation">
-            <option value="" selected disabled>Choose source location...</option>
-            <option *ngFor="let location of sourceLocationOptions" [value]="location.value">{{ location.label }}</option>
+            <option value="" selected disabled>Pilih lokasi asal...</option>
+            <option *ngFor="let location of sourceLocationOptions" [value]="location.value">
+              {{ location.label }} - {{ location.quantity }} {{ selectedItem?.unit || 'unit' }}
+            </option>
           </select>
           <ion-icon name="chevron-down-outline"></ion-icon>
         </div>
       </label>
 
       <label class="field">
-        <span>To Location</span>
+        <span>Ke Lokasi</span>
         <div class="select-wrap">
           <select [(ngModel)]="form.toLocation" name="toLocation">
-            <option value="" selected disabled>Choose destination location...</option>
+            <option value="" selected disabled>Pilih lokasi tujuan...</option>
             <option *ngFor="let location of destinationLocationOptions" [value]="location.value">{{ location.label }}</option>
           </select>
           <ion-icon name="chevron-down-outline"></ion-icon>
@@ -64,13 +68,13 @@
       </label>
 
       <label class="field">
-        <span>Notes (Optional)</span>
-        <textarea [(ngModel)]="form.notes" name="notes" rows="3" placeholder="Add a note..."></textarea>
+        <span>Catatan (Opsional)</span>
+        <textarea [(ngModel)]="form.notes" name="notes" rows="3" placeholder="Tambahkan catatan..."></textarea>
       </label>
     </form>
 
-    <button class="submit-button" type="button" (click)="submit()">
-      <span>Move Stock</span>
+    <button class="submit-button" type="button" (click)="submit()" [disabled]="isSubmitting">
+      <span>{{ isSubmitting ? 'Menyimpan...' : 'Simpan Mutasi Stok' }}</span>
     </button>
   </div>
 </ion-content>

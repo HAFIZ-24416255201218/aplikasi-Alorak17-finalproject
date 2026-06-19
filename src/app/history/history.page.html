@@ -16,9 +16,6 @@
         <p>{{ productNameFilter || (transactions.length + ' transaksi tercatat') }}</p>
       </div>
 
-      <button class="download-button" type="button" aria-label="Unduh riwayat transaksi" (click)="exportHistory()">
-        <ion-icon name="download-outline"></ion-icon>
-      </button>
     </div>
 
     <div class="search-box">
@@ -171,19 +168,19 @@
   <div class="nav-wrapper">
     <div class="nav-item" (click)="goToHome()">
       <ion-icon name="home-outline"></ion-icon>
-      <span>Dashboard</span>
+      <span>Beranda</span>
     </div>
     <div class="nav-item" (click)="goToInventory()">
       <ion-icon name="layers-outline"></ion-icon>
-      <span>Inventory</span>
+      <span>Inventori</span>
     </div>
     <div class="nav-item active">
       <ion-icon name="time-outline"></ion-icon>
-      <span>History</span>
+      <span>Riwayat</span>
     </div>
     <div class="nav-item" (click)="goToProfile()">
       <ion-icon name="person-outline"></ion-icon>
-      <span>Profile</span>
+      <span>Profil</span>
     </div>
   </div>
 </ion-footer>

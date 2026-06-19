@@ -38,7 +38,7 @@
         <div class="notification-content">
           <h3>{{ notif.title }}</h3>
           <p>{{ notif.message }}</p>
-          <span class="timestamp">{{ notif.timestamp }}</span>
+          <span class="timestamp">{{ getRelativeTime(notif.timestamp) }}</span>
         </div>
         <div class="notification-indicator" *ngIf="!notif.read"></div>
       </div>

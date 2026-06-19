@@ -27,7 +27,7 @@ export class OnboardingComponent implements OnInit {
     },
     {
       title: 'Fitur Utama',
-      description: 'Pantau stok, scan barcode, dan kelola barang masuk & keluar secara real-time.',
+      description: 'Pantau stok, pindai barcode, dan kelola barang masuk & keluar secara langsung.',
       image: 'assets/privacy/rame2.jpg',
       imageAlt: 'Ilustrasi dashboard dan proses scan barcode',
     },

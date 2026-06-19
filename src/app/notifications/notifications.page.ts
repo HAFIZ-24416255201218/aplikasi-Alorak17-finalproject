@@ -1,18 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { InventoryService } from '../inventory/inventory.service';
+import { Notification, NotificationService } from '../services/notification.service';
+import { Subscription } from 'rxjs';
 
-interface Notification {
-  id: number;
-  title: string;
-  message: string;
-  timestamp: string;
-  icon: string;
-  read: boolean;
-  category: NotificationCategory;
-}
-
-type NotificationCategory = 'low' | 'medium' | 'expiry';
+type NotificationCategory = 'low' | 'medium';
 
 @Component({
   selector: 'app-notifications',
@@ -20,84 +11,83 @@ type NotificationCategory = 'low' | 'medium' | 'expiry';
   styleUrls: ['./notifications.page.scss'],
   standalone: false,
 })
-export class NotificationsPage {
+export class NotificationsPage implements OnInit, OnDestroy {
   notifications: Notification[] = [];
   activeCategory: NotificationCategory = 'low';
   tabs: Array<{ key: NotificationCategory; label: string; tone: string }> = [
     { key: 'low', label: 'Stok Rendah', tone: 'danger' },
     { key: 'medium', label: 'Stok Hampir Rendah', tone: 'warning' },
-    { key: 'expiry', label: 'Kadaluarsa', tone: 'orange' },
   ];
   private readonly fallbackRoute = '/profile';
+  private subscription?: Subscription;
+  private refreshInterval?: any;
 
   constructor(
     private router: Router,
     private route: ActivatedRoute,
-    private inventoryService: InventoryService,
-  ) {
-    this.generateNotifications();
-  }
+    private notificationService: NotificationService,
+  ) {}
 
-  private generateNotifications() {
-    const items = this.inventoryService.getItems();
-    const newNotifications: Notification[] = [];
-    let notificationId = 1;
+  ngOnInit() {}
 
-    items.forEach(item => {
-      const stockStatus = this.inventoryService.getStockStatus(item);
-
-      if (stockStatus === 'low') {
-        newNotifications.push({
-          id: notificationId++,
-          title: 'Stok Rendah',
-          message: `Item "${item.name}" stok sudah di bawah ${item.minThreshold || 50} unit`,
-          timestamp: 'Baru saja',
-          icon: 'warning-outline',
-          read: false,
-          category: 'low',
-        });
-      } else if (stockStatus === 'medium') {
-        newNotifications.push({
-          id: notificationId++,
-          title: 'Stok Hampir Rendah',
-          message: `Item "${item.name}" stok hampir habis`,
-          timestamp: 'Baru saja',
-          icon: 'warning-outline',
-          read: false,
-          category: 'medium',
-        });
-      }
-
-      if (this.inventoryService.isItemExpiringSoon(item, 7)) {
-        const expirationDate = new Date(item.expirationDate!);
-        const today = new Date();
-        const daysLeft = Math.floor((expirationDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-
-        newNotifications.push({
-          id: notificationId++,
-          title: 'Barang Kadaluarsa',
-          message: `Item "${item.name}" akan kadaluarsa dalam ${daysLeft} hari`,
-          timestamp: 'Baru saja',
-          icon: 'alert-circle-outline',
-          read: false,
-          category: 'expiry',
-        });
-      }
-
-      if (this.inventoryService.isItemExpired(item)) {
-        newNotifications.push({
-          id: notificationId++,
-          title: 'Barang Kadaluarsa',
-          message: `Item "${item.name}" sudah kadaluarsa`,
-          timestamp: 'Baru saja',
-          icon: 'alert-circle-outline',
-          read: false,
-          category: 'expiry',
-        });
-      }
+  ionViewWillEnter() {
+    this.subscription = this.notificationService.notifications$.subscribe(notifications => {
+      this.notifications = notifications;
     });
 
-    this.notifications = newNotifications;
+    // Trigger Angular change detection for relative time labels every 30 seconds
+    this.refreshInterval = setInterval(() => {
+      this.notifications = [...this.notifications];
+    }, 30000);
+  }
+
+  ionViewWillLeave() {
+    this.notificationService.markAllAsRead();
+
+    if (this.subscription) {
+      this.subscription.unsubscribe();
+      this.subscription = undefined;
+    }
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+      this.refreshInterval = undefined;
+    }
+  }
+
+  ngOnDestroy() {
+    this.ionViewWillLeave();
+  }
+
+  getRelativeTime(timestamp: string): string {
+    if (!timestamp) {
+      return 'Baru saja';
+    }
+
+    // Replace space with T for browser compatibility if it's "YYYY-MM-DD HH:MM:SS"
+    const formattedTimestamp = timestamp.includes(' ') && !timestamp.includes('T')
+      ? timestamp.replace(' ', 'T')
+      : timestamp;
+
+    const time = new Date(formattedTimestamp).getTime();
+    const now = Date.now();
+    const diffSeconds = Math.floor((now - time) / 1000);
+
+    if (diffSeconds < 60) {
+      return 'Baru saja';
+    }
+
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    if (diffMinutes < 60) {
+      return `${diffMinutes} menit lalu`;
+    }
+
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) {
+      return `${diffHours} jam lalu`;
+    }
+
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays} hari lalu`;
   }
 
   get filteredNotifications() {

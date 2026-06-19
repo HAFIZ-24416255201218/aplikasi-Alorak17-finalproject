@@ -1,9 +1,11 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { InventoryItem, InventoryService } from '../inventory/inventory.service';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Subject, of } from 'rxjs';
+import { switchMap, takeUntil } from 'rxjs/operators';
+import { InventoryItem, InventoryLocation, InventoryService } from '../inventory/inventory.service';
+import { AuthService } from '../services/auth.service';
 import { TransactionItem, TransactionService } from '../transactions/transaction.service';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
 
 interface TransactionLine {
   icon: string;
@@ -29,28 +31,91 @@ export class InventoryDetailPage implements OnInit, OnDestroy {
     private router: Router,
     private inventoryService: InventoryService,
     private transactionService: TransactionService,
+    private authService: AuthService
   ) {}
+
+  get isAdmin(): boolean {
+    return this.authService.getCurrentUser()?.role === 'admin';
+  }
+
+  get healthStatus(): 'RENDAH' | 'SEDANG' | 'TINGGI' {
+    if (!this.item) {
+      return 'RENDAH';
+    }
+
+    const minThreshold = this.item.minThreshold ?? 10;
+    const mediumThreshold = this.item.mediumThreshold ?? 50;
+
+    if (this.item.quantity <= minThreshold) return 'RENDAH';
+    if (this.item.quantity <= mediumThreshold) return 'SEDANG';
+    return 'TINGGI';
+  }
+
+  get healthStatusClass(): 'low' | 'medium' | 'high' {
+    if (!this.item) {
+      return 'low';
+    }
+
+    const minThreshold = this.item.minThreshold ?? 10;
+    const mediumThreshold = this.item.mediumThreshold ?? 50;
+
+    if (this.item.quantity <= minThreshold) return 'low';
+    if (this.item.quantity <= mediumThreshold) return 'medium';
+    return 'high';
+  }
+
+  get productLocations(): InventoryLocation[] {
+    if (!this.item) {
+      return [];
+    }
+
+    if (this.item.locations?.length) {
+      return this.item.locations.map(location => ({
+        ...location,
+        name: location.parentLocation && !location.name.includes('/')
+          ? `${location.parentLocation}/${location.name}`
+          : location.name,
+      }));
+    }
+
+    return [{ name: this.item.location, quantity: this.item.quantity }];
+  }
+
+  get totalLocationStock(): number {
+    return this.productLocations.reduce((total, location) => total + Number(location.quantity || 0), 0);
+  }
+
+  get lastUpdatedText(): string {
+    if (!this.item?.updatedAt) {
+      return '-';
+    }
+
+    return this.getRelativeTime(this.item.updatedAt);
+  }
 
   ngOnInit() {
     this.route.paramMap
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((params) => {
-        const sku = params.get('sku');
-        if (!sku) {
+      .pipe(
+        takeUntil(this.destroy$),
+        switchMap(params => {
+          const itemId = params.get('sku') || params.get('id') || '';
+
+          if (!itemId) {
+            return of(undefined);
+          }
+
+          return this.inventoryService.getItemById(itemId);
+        })
+      )
+      .subscribe(item => {
+        if (!item) {
+          window.alert('Barang tidak ditemukan.');
           this.router.navigate(['/inventory']);
           return;
         }
 
-        this.item = this.inventoryService.getItemById(sku);
-        if (!this.item) {
-          this.router.navigate(['/inventory']);
-          return;
-        }
-
-        this.transactions = this.transactionService
-          .getTransactionsByProduct(this.item.id, this.item.sku, this.item.name)
-          .slice(0, 8)
-          .map(transaction => this.toTransactionLine(transaction));
+        this.item = item;
+        this.loadTransactions(item);
       });
   }
 
@@ -59,58 +124,8 @@ export class InventoryDetailPage implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  ionViewWillEnter() {
-    // Refresh data setiap kali view di-enter
-    const sku = this.route.snapshot.paramMap.get('sku');
-    if (sku) {
-      this.item = this.inventoryService.getItemById(sku);
-      if (this.item) {
-        this.transactions = this.transactionService
-          .getTransactionsByProduct(this.item.id, this.item.sku, this.item.name)
-          .slice(0, 8)
-          .map(transaction => this.toTransactionLine(transaction));
-      }
-    }
-  }
-
   goBack() {
     this.router.navigate(['/inventory']);
-  }
-
-  deleteItem() {
-    if (!this.item) {
-      return;
-    }
-
-    const confirmed = window.confirm(`Hapus item ${this.item.name} dari inventory?`);
-    if (!confirmed) {
-      return;
-    }
-
-    this.inventoryService.deleteItem(this.item.id);
-    this.router.navigate(['/inventory']);
-  }
-
-  openItemHistory() {
-    if (!this.item) {
-      return;
-    }
-
-    this.router.navigate(['/history'], {
-      queryParams: {
-        productId: this.item.id,
-        productName: this.item.name,
-      },
-    });
-  }
-
-  editItem() {
-    if (!this.item) {
-      return;
-    }
-    // Navigate ke halaman edit dengan SKU sebagai parameter
-    // Halaman edit akan dibuat dengan form untuk mengubah data produk
-    this.router.navigate(['/inventory-edit', this.item.sku]);
   }
 
   goToHome() {
@@ -125,50 +140,61 @@ export class InventoryDetailPage implements OnInit, OnDestroy {
     this.router.navigate(['/profile']);
   }
 
-  get healthStatus() {
+  editItem() {
     if (!this.item) {
-      return 'UNKNOWN';
+      return;
     }
 
-    const minThreshold = this.item.minThreshold || 50;
-    const mediumThreshold = this.item.mediumThreshold || 150;
-
-    if (this.item.quantity < minThreshold) return 'LOW';
-    if (this.item.quantity < mediumThreshold) return 'MEDIUM';
-    return 'HEALTHY';
+    this.router.navigate(['/inventory-edit', this.item.id]);
   }
 
-  get productLocations() {
+  openItemHistory() {
+    this.router.navigate(['/history']);
+  }
+
+  deleteItem() {
     if (!this.item) {
-      return [];
+      return;
     }
 
-    if (this.item.locations?.length) {
-      return this.item.locations;
+    if (!this.isAdmin) {
+      window.alert('Produk hanya bisa dihapus oleh admin melalui akun admin.');
+      return;
     }
 
-    return [{ name: this.item.location, quantity: this.item.quantity }];
+    const confirmed = window.confirm(`Hapus barang ${this.item.name} dari inventori?`);
+    if (!confirmed) {
+      return;
+    }
+
+    this.inventoryService.deleteItem(this.item.id).subscribe({
+      next: () => {
+        this.router.navigate(['/inventory']);
+      },
+      error: error => {
+        window.alert(this.getDeleteErrorMessage(error));
+      },
+    });
   }
 
-  get totalLocationStock() {
-    return this.productLocations.reduce((total, location) => total + location.quantity, 0);
-  }
-
-  get lastUpdatedText() {
-    if (!this.item?.updatedAt) {
-      return '-';
-    }
-
-    return this.getRelativeTime(this.item.updatedAt);
+  private loadTransactions(item: InventoryItem) {
+    this.transactionService
+      .getTransactionsByProduct(item.id, item.sku, item.name)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(transactions => {
+        this.transactions = transactions.map(transaction => this.toTransactionLine(transaction));
+      });
   }
 
   private toTransactionLine(transaction: TransactionItem): TransactionLine {
     const iconClass = transaction.type === 'move' ? 'mutation' : transaction.type === 'out' ? 'out' : 'in';
+    const amount = Math.abs(Number(transaction.amount.replace(/[^\d.-]/g, '')) || 0);
+
     return {
       icon: transaction.type === 'move' ? 'swap-horizontal-outline' : transaction.type === 'out' ? 'arrow-up-outline' : 'arrow-down-outline',
       iconClass,
-      amount: transaction.type === 'move' ? `<>${Math.abs(Number(transaction.amount.replace(/[^\d.-]/g, '')) || 0)}` : transaction.amount,
-      type: transaction.type === 'move' ? 'MUTATION' : transaction.type.toUpperCase(),
+      amount: transaction.type === 'move' ? `${amount}` : transaction.amount,
+      type: transaction.type === 'move' ? 'MUTASI' : transaction.type === 'out' ? 'KELUAR' : 'MASUK',
       meta: `${this.formatDate(transaction.createdAt)} - ${transaction.operator}`,
     };
   }
@@ -189,15 +215,35 @@ export class InventoryDetailPage implements OnInit, OnDestroy {
     const diffMinutes = Math.max(1, Math.floor((now - created) / 60000));
 
     if (diffMinutes < 60) {
-      return `${diffMinutes} minutes ago`;
+      return `${diffMinutes} menit lalu`;
     }
 
     const diffHours = Math.floor(diffMinutes / 60);
     if (diffHours < 24) {
-      return `${diffHours} hours ago`;
+      return `${diffHours} jam lalu`;
     }
 
     const diffDays = Math.floor(diffHours / 24);
-    return `${diffDays} days ago`;
+    return `${diffDays} hari lalu`;
+  }
+
+  private getDeleteErrorMessage(error: unknown): string {
+    if (!(error instanceof HttpErrorResponse)) {
+      return 'Gagal menghapus produk.';
+    }
+
+    if (error.status === 401 || error.status === 403) {
+      return 'Gagal menghapus produk. Akun ini tidak punya akses hapus barang.';
+    }
+
+    if (error.status === 0) {
+      return 'Gagal menghapus produk. HP tidak bisa terhubung ke server.';
+    }
+
+    if (error.error?.message) {
+      return `Gagal menghapus produk: ${error.error.message}`;
+    }
+
+    return `Gagal menghapus produk. Kode error: ${error.status}.`;
   }
 }

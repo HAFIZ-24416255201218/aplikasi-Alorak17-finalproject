@@ -382,6 +382,105 @@
   }
 }
 
+.profile-content {
+  --background: var(--app-bg);
+}
+
+.profile-shell {
+  padding-inline: 12px;
+}
+
+.profile-hero {
+  margin-inline: -12px;
+  padding: calc(30px + env(safe-area-inset-top)) 20px 76px;
+  background: var(--app-hero);
+}
+
+.profile-hero::before,
+.profile-hero::after {
+  display: none;
+}
+
+.hero-copy p {
+  letter-spacing: 0;
+}
+
+.profile-card.modern,
+.metric-card,
+.panel {
+  border: 1px solid var(--app-line);
+  box-shadow: var(--app-shadow);
+}
+
+.profile-card.modern {
+  border-radius: 18px;
+}
+
+.avatar-box {
+  background: linear-gradient(135deg, var(--app-primary) 0%, var(--app-secondary) 100%);
+  box-shadow: 0 12px 24px rgba(18, 101, 216, 0.22);
+}
+
+.profile-tags .role {
+  background: #edf6ff;
+  color: var(--app-primary);
+}
+
+.profile-tags .status {
+  background: #ecfdf3;
+  color: var(--app-success);
+}
+
+.edit-button {
+  border: 1px solid #dce8f6;
+  background: #f6faff;
+}
+
+.metric-card {
+  border-radius: 16px;
+}
+
+.panel {
+  border-radius: 18px;
+}
+
+.setting-row {
+  min-height: 58px;
+}
+
+.setting-left ion-icon {
+  color: var(--app-primary);
+}
+
+.signout-button {
+  border: 1px solid #fecdd3;
+  background: #fff1f2;
+  color: #be123c;
+  box-shadow: none;
+}
+
+.footer-nav {
+  left: 12px;
+  right: 12px;
+  bottom: 10px;
+  border-radius: 22px 22px 18px 18px;
+  border: 1px solid rgba(231, 237, 245, 0.92);
+}
+
+.nav-wrapper {
+  padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
+}
+
+.nav-item {
+  min-height: 54px;
+  border-radius: 16px;
+}
+
+.nav-item.active {
+  background: #edf6ff;
+  color: var(--app-primary);
+}
+
 .footer-nav {
   position: fixed;
   bottom: 0;

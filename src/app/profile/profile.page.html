@@ -20,7 +20,7 @@
             <span class="status">{{ status }}</span>
           </div>
         </div>
-        <button class="edit-button" type="button" aria-label="Edit profile" (click)="openEditProfile()">
+        <button class="edit-button" type="button" aria-label="Ubah profil" (click)="openEditProfile()">
           <ion-icon name="create-outline"></ion-icon>
         </button>
       </div>
@@ -34,20 +34,20 @@
     </div>
 
     <section class="section-block">
-      <h2>SETTINGS</h2>
+      <h2>PENGATURAN</h2>
       <div class="panel">
         <button class="setting-row" type="button">
           <div class="setting-left">
             <ion-icon [name]="darkMode ? 'moon-outline' : 'sunny-outline'"></ion-icon>
-            <span>Dark Mode</span>
+            <span>Mode Gelap</span>
           </div>
-          <ion-toggle aria-label="Toggle dark mode" [checked]="darkMode" (ionChange)="toggleDarkMode($event)"></ion-toggle>
+          <ion-toggle aria-label="Aktifkan mode gelap" [checked]="darkMode" (ionChange)="toggleDarkMode($event)"></ion-toggle>
         </button>
 
         <button class="setting-row" type="button" (click)="openNotifications()">
           <div class="setting-left">
             <ion-icon name="notifications-outline"></ion-icon>
-            <span>Notifications</span>
+            <span>Notifikasi</span>
           </div>
           <ion-icon name="chevron-forward-outline"></ion-icon>
         </button>
@@ -55,7 +55,7 @@
         <button class="setting-row" type="button" (click)="openHelpSupport()">
           <div class="setting-left">
             <ion-icon name="help-circle-outline"></ion-icon>
-            <span>Help & Support</span>
+            <span>Bantuan & Dukungan</span>
           </div>
           <ion-icon name="chevron-forward-outline"></ion-icon>
         </button>
@@ -72,7 +72,7 @@
 
     <button class="signout-button" type="button" (click)="logout()">
       <ion-icon name="log-out-outline"></ion-icon>
-      <span>Sign Out</span>
+      <span>Keluar</span>
     </button>
   </div>
 </ion-content>
@@ -81,19 +81,19 @@
   <div class="nav-wrapper">
     <div class="nav-item" (click)="goToHome()">
       <ion-icon name="home-outline"></ion-icon>
-      <span>Dashboard</span>
+      <span>Beranda</span>
     </div>
     <div class="nav-item" (click)="goToInventory()">
       <ion-icon name="layers-outline"></ion-icon>
-      <span>Inventory</span>
+      <span>Inventori</span>
     </div>
     <div class="nav-item" (click)="goToHistory()">
       <ion-icon name="time-outline"></ion-icon>
-      <span>History</span>
+      <span>Riwayat</span>
     </div>
     <div class="nav-item active">
       <ion-icon name="person-outline"></ion-icon>
-      <span>Profile</span>
+      <span>Profil</span>
     </div>
   </div>
 </ion-footer>

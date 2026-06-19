@@ -1,7 +1,7 @@
 <ion-content [fullscreen]="false" class="detail-content" *ngIf="item">
   <header class="product-detail-hero">
     <div class="detail-header">
-      <button class="icon-button" type="button" (click)="goBack()" aria-label="Back">
+      <button class="icon-button" type="button" (click)="goBack()" aria-label="Kembali">
         <ion-icon name="arrow-back-outline"></ion-icon>
       </button>
 
@@ -9,7 +9,7 @@
         <h1>Detail Barang</h1>
       </div>
 
-      <button class="delete-button" type="button" (click)="deleteItem()" aria-label="Hapus produk">
+      <button *ngIf="isAdmin" class="delete-button" type="button" (click)="deleteItem()" aria-label="Hapus produk">
         <ion-icon name="trash-outline"></ion-icon>
       </button>
     </div>
@@ -32,7 +32,7 @@
   <div class="detail-shell">
     <div class="stock-card" [ngClass]="healthStatus.toLowerCase()">
       <div class="stock-top">
-        <span>Current Stock</span>
+        <span>Stok Saat Ini</span>
         <strong>{{ healthStatus }}</strong>
       </div>
       <div class="stock-amount">
@@ -47,7 +47,7 @@
         <strong>{{ item.unit }}</strong>
       </div>
       <div class="info-card">
-        <div class="info-label"><ion-icon name="alert-circle-outline"></ion-icon><span>Batas Minimum Stock</span></div>
+        <div class="info-label"><ion-icon name="alert-circle-outline"></ion-icon><span>Batas Minimum Stok</span></div>
         <strong>{{ item.minThreshold || 50 }}</strong>
       </div>
       <div class="info-card">
@@ -59,13 +59,10 @@
         <strong>{{ item.category || 'Umum' }}</strong>
       </div>
       <div class="info-card">
-        <div class="info-label"><ion-icon name="time-outline"></ion-icon><span>Last Updated</span></div>
+        <div class="info-label"><ion-icon name="time-outline"></ion-icon><span>Terakhir Diperbarui</span></div>
         <strong>{{ lastUpdatedText }}</strong>
       </div>
-      <div class="info-card">
-        <div class="info-label"><ion-icon name="calendar-outline"></ion-icon><span>Expiration Date</span></div>
-        <strong>{{ item.expirationDate || '-' }}</strong>
-      </div>
+
     </div>
 
     <section class="locations-section">
@@ -85,37 +82,36 @@
       </div>
     </section>
 
+    <div class="detail-actions">
+      <button class="action edit" type="button" (click)="editItem()">
+        <ion-icon name="pencil-outline"></ion-icon>
+        <span>Ubah</span>
+      </button>
+      <button class="action history" type="button" (click)="openItemHistory()">
+        <ion-icon name="time-outline"></ion-icon>
+        <span>Riwayat</span>
+      </button>
+    </div>
   </div>
 </ion-content>
-
-<div class="floating-actions" *ngIf="item">
-  <button class="action edit" type="button" (click)="editItem()">
-    <ion-icon name="pencil-outline"></ion-icon>
-    <span>Ubah</span>
-  </button>
-  <button class="action history" type="button" (click)="openItemHistory()">
-    <ion-icon name="time-outline"></ion-icon>
-    <span>Riwayat</span>
-  </button>
-</div>
 
 <ion-footer class="footer-nav" *ngIf="item">
   <div class="nav-wrapper">
     <div class="nav-item" (click)="goToHome()">
       <ion-icon name="home-outline"></ion-icon>
-      <span>Dashboard</span>
+      <span>Beranda</span>
     </div>
     <div class="nav-item active">
       <ion-icon name="layers-outline"></ion-icon>
-      <span>Inventory</span>
+      <span>Inventori</span>
     </div>
     <div class="nav-item" (click)="goToHistory()">
       <ion-icon name="time-outline"></ion-icon>
-      <span>History</span>
+      <span>Riwayat</span>
     </div>
     <div class="nav-item" (click)="goToProfile()">
       <ion-icon name="person-outline"></ion-icon>
-      <span>Profile</span>
+      <span>Profil</span>
     </div>
   </div>
 </ion-footer>

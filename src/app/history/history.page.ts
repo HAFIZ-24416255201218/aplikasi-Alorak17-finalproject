@@ -39,9 +39,20 @@ export class HistoryPage {
     const queryParams = this.route.snapshot.queryParamMap;
     this.productIdFilter = queryParams.get('productId') || '';
     this.productNameFilter = queryParams.get('productName') || '';
-    this.transactions = this.transactionService.getTransactions();
-    this.updateStats();
-    this.filterTransactions();
+    this.loadTransactions();
+  }
+
+  selectTab(tab: 'all' | 'in' | 'out' | 'move') {
+    this.activeTab = tab;
+    this.loadTransactions();
+  }
+
+  private loadTransactions() {
+    this.transactionService.getTransactionsForTab(this.activeTab).subscribe(transactions => {
+      this.transactions = transactions;
+      this.updateStats();
+      this.filterTransactions();
+    });
   }
 
   updateStats() {
@@ -53,11 +64,6 @@ export class HistoryPage {
     this.stats.in = this.sumTransactions(transactions.filter(transaction => transaction.type === 'in'));
     this.stats.out = this.sumTransactions(transactions.filter(transaction => transaction.type === 'out'));
     this.stats.move = this.sumTransactions(transactions.filter(transaction => transaction.type === 'move'));
-  }
-
-  selectTab(tab: 'all' | 'in' | 'out' | 'move') {
-    this.activeTab = tab;
-    this.filterTransactions();
   }
 
   filterTransactions() {
@@ -95,35 +101,6 @@ export class HistoryPage {
   clearSearch() {
     this.searchQuery = '';
     this.filterTransactions();
-  }
-
-  exportHistory() {
-    const rows = [
-      ['Tanggal', 'Waktu', 'Tipe', 'Nama', 'Kode', 'Operator', 'Rute', 'Jumlah', 'Catatan'],
-      ...this.filteredTransactions.map(transaction => [
-        this.formatFullDate(new Date(transaction.createdAt)),
-        transaction.time,
-        transaction.type,
-        transaction.name,
-        transaction.sku || '',
-        transaction.operator,
-        transaction.route,
-        transaction.amount,
-        transaction.note || '',
-      ]),
-    ];
-
-    const csv = rows
-      .map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(','))
-      .join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-
-    link.href = url;
-    link.download = 'riwayat-transaksi.csv';
-    link.click();
-    URL.revokeObjectURL(url);
   }
 
   goToHome() {

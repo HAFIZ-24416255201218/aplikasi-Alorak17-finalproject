@@ -1,0 +1,9 @@
+node_modules
+
+# Local build/cache artifacts
+.angular/cache/
+build-check/
+
+# Editor settings
+.idea/
+.vscode/

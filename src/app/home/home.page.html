@@ -4,9 +4,9 @@
       <img src="assets/logoilang.png" alt="Logo Gudang" />
     </div>
 
-    <button class="hero-notification" type="button" aria-label="Notifications" (click)="goToNotifications()">
+    <button class="hero-notification" type="button" aria-label="Notifikasi" (click)="goToNotifications()">
       <ion-icon name="notifications-outline"></ion-icon>
-      <span class="notification-dot"></span>
+      <span class="notification-dot" *ngIf="unreadCount > 0"></span>
     </button>
   </section>
 
@@ -31,7 +31,7 @@
   </div>
 
   <div class="quick-actions-section">
-    <h2 class="section-title">QUICK ACTIONS</h2>
+    <h2 class="section-title">AKSI CEPAT</h2>
     <div class="actions-grid">
       <button class="action-button" *ngFor="let action of quickActions" [style.background]="action.color" (click)="handleQuickAction(action.action)">
         <ion-icon [name]="action.icon"></ion-icon>
@@ -44,14 +44,14 @@
     <div class="section-header">
       <h2 class="section-title">
         <ion-icon name="alert-circle-outline" class="alert-icon"></ion-icon>
-        LOW STOCK ALERT ({{ lowStockItems.length }})
+        PERINGATAN STOK RENDAH ({{ lowStockItems.length }})
       </h2>
     </div>
     <div class="low-stock-items">
       <button class="stock-item" type="button" *ngFor="let item of lowStockItems" (click)="goToProductDetail(item.id)">
         <div class="stock-info">
           <h3>{{ item.name }}</h3>
-          <span class="stock-count">{{ item.current }} / {{ item.total }} units</span>
+          <span class="stock-count">{{ item.current }} / {{ item.total }} unit</span>
         </div>
         <div class="progress-section">
           <div class="progress-bar-wrapper">
@@ -65,7 +65,7 @@
 
   <div class="recent-activity-section">
     <div class="activity-header">
-      <h2 class="section-title">RECENT ACTIVITY</h2>
+      <h2 class="section-title">AKTIVITAS TERBARU</h2>
       <button class="view-all-link" (click)="goToHistory()">
         <span>Lihat Semua</span>
         <ion-icon name="arrow-forward-outline"></ion-icon>
@@ -99,19 +99,19 @@
   <div class="nav-wrapper">
     <div class="nav-item active">
       <ion-icon name="home-outline"></ion-icon>
-      <span>Dashboard</span>
+      <span>Beranda</span>
     </div>
     <div class="nav-item" (click)="goToInventory()">
       <ion-icon name="layers-outline"></ion-icon>
-      <span>Inventory</span>
+      <span>Inventori</span>
     </div>
     <div class="nav-item" (click)="goToHistory()">
       <ion-icon name="time-outline"></ion-icon>
-      <span>History</span>
+      <span>Riwayat</span>
     </div>
     <div class="nav-item" (click)="goToProfile()">
       <ion-icon name="person-outline"></ion-icon>
-      <span>Profile</span>
+      <span>Profil</span>
     </div>
   </div>
 </ion-footer>

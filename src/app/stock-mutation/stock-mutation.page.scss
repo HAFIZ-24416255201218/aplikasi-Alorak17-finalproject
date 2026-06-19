@@ -195,3 +195,43 @@
     box-shadow: none;
   }
 }
+
+.stock-mutation-content {
+  --background: var(--app-bg);
+}
+
+.stock-mutation-header {
+  padding: calc(24px + env(safe-area-inset-top)) 16px 46px;
+  background: var(--app-hero);
+  border-bottom-left-radius: 24px;
+  border-bottom-right-radius: 24px;
+}
+
+.title-icon,
+.close-button {
+  border-radius: 14px;
+}
+
+.goods-form,
+.mutation-preview div {
+  border: 1px solid var(--app-line);
+  border-radius: 18px;
+  box-shadow: var(--app-shadow);
+}
+
+.field input,
+.field textarea,
+.field select {
+  border-radius: 14px;
+}
+
+.submit-button {
+  min-height: 54px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--app-primary) 0%, var(--app-secondary) 100%);
+  box-shadow: 0 12px 26px rgba(18, 101, 216, 0.22);
+}
+
+.submit-button:disabled {
+  opacity: 0.65;
+}

@@ -1,7 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { InventoryItem, InventoryService } from '../inventory/inventory.service';
 import { TransactionItem, TransactionService } from '../transactions/transaction.service';
+import { NotificationService } from '../services/notification.service';
+import { forkJoin, Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-home',
@@ -9,10 +11,12 @@ import { TransactionItem, TransactionService } from '../transactions/transaction
   styleUrls: ['home.page.scss'],
   standalone: false,
 })
-export class HomePage {
+export class HomePage implements OnDestroy {
   username = '';
   greetingText = 'Selamat Datang';
   locationText = '';
+  unreadCount = 0;
+  private notificationSub?: Subscription;
 
   statistics = [
     { icon: 'cube-outline', value: '0', label: 'Total SKU', trend: '0 produk di inventory', color: '#2563eb', theme: 'primary' },
@@ -34,12 +38,27 @@ export class HomePage {
     private router: Router,
     private inventoryService: InventoryService,
     private transactionService: TransactionService,
+    private notificationService: NotificationService,
   ) {
     this.loadUserData();
   }
 
   ionViewWillEnter() {
     this.loadDashboardData();
+    this.notificationSub = this.notificationService.unreadCount$.subscribe(count => {
+      this.unreadCount = count;
+    });
+  }
+
+  ionViewWillLeave() {
+    if (this.notificationSub) {
+      this.notificationSub.unsubscribe();
+      this.notificationSub = undefined;
+    }
+  }
+
+  ngOnDestroy() {
+    this.ionViewWillLeave();
   }
 
   private loadUserData() {
@@ -93,76 +112,96 @@ export class HomePage {
     this.router.navigate(['/inventory-detail', id]);
   }
 
+  private toDateKey(date: Date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
   private loadDashboardData() {
-    const items = this.inventoryService.getItems();
-    const transactions = this.transactionService.getTransactions();
-    const todayTransactions = this.transactionService.getTodayTransactions();
-    const totalStock = items.reduce((sum, item) => sum + item.quantity, 0);
-    const totalInToday = this.transactionService.getTodayTotalByType('in');
-    const totalOutToday = this.transactionService.getTodayTotalByType('out');
+    forkJoin({
+      items: this.inventoryService.getItems(),
+      transactions: this.transactionService.getTransactions()
+    }).subscribe(({ items, transactions }) => {
+      const todayKey = this.toDateKey(new Date());
+      const todayTransactions = transactions.filter(
+        t => this.toDateKey(new Date(t.createdAt)) === todayKey
+      );
 
-    this.statistics = [
-      {
-        icon: 'cube-outline',
-        value: `${items.length}`,
-        label: 'Total SKU',
-        trend: `${items.length} produk di inventory`,
-        color: '#2563eb',
-        theme: 'primary',
-      },
-      {
-        icon: 'archive-outline',
-        value: `${totalStock}`,
-        label: 'Total Stock',
-        trend: `${totalStock} unit tersimpan`,
-        color: '#16a34a',
-        theme: 'success',
-      },
-      {
-        icon: 'log-in-outline',
-        value: `${totalInToday}`,
-        label: 'Barang Masuk',
-        trend: `${todayTransactions.filter(item => item.type === 'in').length} transaksi hari ini`,
-        color: '#22c55e',
-        theme: 'success',
-      },
-      {
-        icon: 'log-out-outline',
-        value: `${totalOutToday}`,
-        label: 'Barang Keluar',
-        trend: `${todayTransactions.filter(item => item.type === 'out').length} transaksi hari ini`,
-        color: '#f97316',
-        theme: 'warning',
-      },
-    ];
+      const totalStock = items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
 
-    this.lowStockItems = items
-      .filter(item => item.quantity <= (item.mediumThreshold || 100))
-      .sort((a, b) => a.quantity - b.quantity)
-      .slice(0, 3)
-      .map(item => {
-        const total = item.mediumThreshold || 100;
+      const totalInToday = todayTransactions
+        .filter(t => t.type === 'in')
+        .reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
+
+      const totalOutToday = todayTransactions
+        .filter(t => t.type === 'out')
+        .reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
+
+      this.statistics = [
+        {
+          icon: 'cube-outline',
+          value: `${items.length}`,
+          label: 'Total SKU',
+          trend: `${items.length} produk di inventory`,
+          color: '#2563eb',
+          theme: 'primary',
+        },
+        {
+          icon: 'archive-outline',
+          value: `${totalStock}`,
+          label: 'Total Stock',
+          trend: `${totalStock} unit tersimpan`,
+          color: '#16a34a',
+          theme: 'success',
+        },
+        {
+          icon: 'log-in-outline',
+          value: `${totalInToday}`,
+          label: 'Barang Masuk',
+          trend: `${todayTransactions.filter(item => item.type === 'in').length} transaksi hari ini`,
+          color: '#22c55e',
+          theme: 'success',
+        },
+        {
+          icon: 'log-out-outline',
+          value: `${totalOutToday}`,
+          label: 'Barang Keluar',
+          trend: `${todayTransactions.filter(item => item.type === 'out').length} transaksi hari ini`,
+          color: '#f97316',
+          theme: 'warning',
+        },
+      ];
+
+      this.lowStockItems = items
+        .filter(item => item.quantity <= (item.mediumThreshold || 100))
+        .sort((a, b) => a.quantity - b.quantity)
+        .slice(0, 3)
+        .map(item => {
+          const total = item.mediumThreshold || 100;
+          return {
+            id: item.id,
+            name: item.name,
+            sku: item.sku,
+            current: item.quantity,
+            total,
+            percentage: Math.min(100, Math.round((item.quantity / total) * 100)),
+          };
+        });
+
+      this.recentActivities = transactions.slice(0, 3).map(transaction => {
+        const product = this.findTransactionProduct(transaction, items);
+
         return {
-          id: item.id,
-          name: item.name,
-          sku: item.sku,
-          current: item.quantity,
-          total,
-          percentage: Math.min(100, Math.round((item.quantity / total) * 100)),
+          icon: transaction.type === 'move' ? 'swap-horizontal-outline' : transaction.type === 'out' ? 'arrow-up-outline' : 'arrow-down-outline',
+          name: transaction.name,
+          change: transaction.amount,
+          time: this.getRelativeTime(transaction.createdAt),
+          color: transaction.type === 'move' ? '#0066cc' : transaction.type === 'out' ? '#f59e0b' : '#22c55e',
+          imageData: product?.imageData,
         };
       });
-
-    this.recentActivities = transactions.slice(0, 3).map(transaction => {
-      const product = this.findTransactionProduct(transaction, items);
-
-      return {
-        icon: transaction.type === 'move' ? 'swap-horizontal-outline' : transaction.type === 'out' ? 'arrow-up-outline' : 'arrow-down-outline',
-        name: transaction.name,
-        change: transaction.amount,
-        time: this.getRelativeTime(transaction.createdAt),
-        color: transaction.type === 'move' ? '#0066cc' : transaction.type === 'out' ? '#f59e0b' : '#22c55e',
-        imageData: product?.imageData,
-      };
     });
   }
 

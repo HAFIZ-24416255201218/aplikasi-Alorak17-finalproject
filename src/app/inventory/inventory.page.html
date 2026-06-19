@@ -18,6 +18,15 @@
         <input [(ngModel)]="searchTerm" type="text" placeholder="Cari nama atau kode barang..." />
       </div>
       <button
+        class="barcode-scan-button"
+        type="button"
+        (click)="openBarcodeScanner()"
+        title="Pindai QR atau kode batang"
+        aria-label="Pindai QR atau kode batang"
+      >
+        <ion-icon name="barcode-outline"></ion-icon>
+      </button>
+      <button
         class="category-filter-button"
         type="button"
         (click)="toggleCategoryPanel()"
@@ -26,9 +35,6 @@
         aria-label="Buka daftar kategori"
       >
         <ion-icon name="funnel"></ion-icon>
-      </button>
-      <button class="barcode-scan-button" type="button" (click)="openBarcodeScanner()" title="Scan barcode">
-        <ion-icon name="scan-outline"></ion-icon>
       </button>
     </div>
   </div>
@@ -75,7 +81,7 @@
   <div class="inventory-shell">
     <div class="active-sort-label">
       <span>Urutkan Berdasarkan</span>
-      <strong>{{ selectedSortLabel }}<ng-container *ngIf="selectedCategory !== 'all'"> · {{ selectedCategoryLabel }}</ng-container></strong>
+      <strong>{{ selectedSortLabel }}<ng-container *ngIf="selectedCategory !== 'all'"> - {{ selectedCategoryLabel }}</ng-container></strong>
     </div>
 
     <div class="inventory-list">
@@ -107,45 +113,45 @@
       </button>
     </div>
   </div>
-
-  <!-- Barcode Scanner Modal -->
-  <div *ngIf="showBarcodeScanner" class="barcode-scanner-overlay">
-    <div class="barcode-scanner-container">
-      <div class="scanner-header">
-        <h2>Scan Barcode</h2>
-        <button class="close-button" type="button" (click)="closeBarcodeScanner()">
-          <ion-icon name="close-outline"></ion-icon>
-        </button>
-      </div>
-      
-      <div class="scanner-content">
-        <video #video class="camera-feed" playsinline></video>
-        <div class="scanner-overlay">
-          <div class="scanner-frame"></div>
-        </div>
-        <p class="scanner-hint">Arahkan kamera ke barcode</p>
-      </div>
-    </div>
-  </div>
 </ion-content>
 
 <ion-footer class="footer-nav">
   <div class="nav-wrapper">
     <div class="nav-item" (click)="goToHome()">
       <ion-icon name="home-outline"></ion-icon>
-      <span>Dashboard</span>
+      <span>Beranda</span>
     </div>
     <div class="nav-item active">
       <ion-icon name="layers-outline"></ion-icon>
-      <span>Inventory</span>
+      <span>Inventori</span>
     </div>
     <div class="nav-item" (click)="goToHistory()">
       <ion-icon name="time-outline"></ion-icon>
-      <span>History</span>
+      <span>Riwayat</span>
     </div>
     <div class="nav-item" (click)="goToProfile()">
       <ion-icon name="person-outline"></ion-icon>
-      <span>Profile</span>
+      <span>Profil</span>
     </div>
   </div>
 </ion-footer>
+
+<div class="barcode-scanner-overlay" *ngIf="showBarcodeScanner">
+  <div class="barcode-scanner-container">
+    <div class="scanner-header">
+      <h2>Pindai QR atau Kode Batang</h2>
+      <button type="button" class="close-scanner" (click)="closeBarcodeScanner()" aria-label="Tutup scanner">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+    </div>
+
+    <div class="camera-container">
+      <video #video class="camera-feed" autoplay playsinline muted></video>
+      <div class="scanner-frame">
+        <div class="scanner-line"></div>
+      </div>
+    </div>
+
+    <p class="scanner-instructions">{{ scannerMessage }}</p>
+  </div>
+</div>
