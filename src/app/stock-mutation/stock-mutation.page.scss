@@ -138,6 +138,41 @@
   }
 }
 
+.primary-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
+  box-shadow: 0 10px 24px rgba(18, 101, 216, 0.12);
+}
+
+.feature-field {
+  span {
+    color: #1d4ed8;
+    font-size: 14px;
+    letter-spacing: 0;
+  }
+
+  input,
+  select {
+    min-height: 50px;
+    border-color: #93c5fd;
+    background: #ffffff;
+    color: #102a43;
+    font-size: 15px;
+    font-weight: 850;
+  }
+
+  input:focus,
+  select:focus {
+    border-color: #2e8cf6;
+    box-shadow: 0 0 0 4px rgba(46, 140, 246, 0.14);
+  }
+}
+
 .select-wrap {
   position: relative;
 

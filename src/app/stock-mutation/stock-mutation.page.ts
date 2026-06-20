@@ -58,6 +58,7 @@ export class StockMutationPage {
   ) {}
 
   ionViewWillEnter() {
+    this.isSubmitting = false;
     this.inventoryService.getItems().subscribe(items => {
       this.inventoryItems = items;
     });
@@ -160,6 +161,7 @@ export class StockMutationPage {
       route: `${fromLocationOption.label} -> ${toLocationName}`,
     }).subscribe({
       next: () => {
+        this.isSubmitting = false;
         this.notificationService.refresh();
         const nextLocations = this.moveStockBetweenLocations(
           selectedItem.locations?.length
@@ -179,6 +181,7 @@ export class StockMutationPage {
           mediumThreshold: selectedItem.mediumThreshold,
           locations: nextLocations,
         });
+        this.inventoryService.invalidateCache();
 
         this.router.navigate(['/inventory-detail', selectedItem.id]);
       },

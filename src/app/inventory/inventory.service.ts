@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, forkJoin, of, throwError } from 'rxjs';
-import { map, switchMap, catchError } from 'rxjs/operators';
+import { map, switchMap, catchError, shareReplay } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { AuthService } from '../services/auth.service';
 import { extractList, firstPageParams, PaginatedResponse } from '../services/pagination.util';
@@ -122,24 +122,50 @@ export class InventoryService {
   private apiUrl = environment.apiUrl;
   private readonly displayMetaStorageKey = 'alorack-item-display-meta';
   private readonly recentItemsStorageKey = 'alorack-recent-items-v2';
+  private readonly shortCacheMs = 15000;
+  private readonly longCacheMs = 300000;
+  private itemsCache?: { key: string; expiresAt: number; stream$: Observable<InventoryItem[]> };
+  private categoriesCache?: { key: string; expiresAt: number; stream$: Observable<LaravelCategory[]> };
+  private stockLocationsCache?: { expiresAt: number; stream$: Observable<any[]> };
+  private historyLocationsCache?: { key: string; expiresAt: number; stream$: Observable<{ history: any[]; locations: any[] }> };
 
   constructor(
     private http: HttpClient,
     private authService: AuthService
   ) {}
 
-  getItems(): Observable<InventoryItem[]> {
+  invalidateCache(): void {
+    this.itemsCache = undefined;
+    this.stockLocationsCache = undefined;
+    this.historyLocationsCache = undefined;
+  }
+
+  getItems(forceRefresh = false): Observable<InventoryItem[]> {
     const user = this.authService.getCurrentUser();
     const endpoint = user?.role === 'admin' 
       ? `${this.apiUrl}/admin/items` 
       : `${this.apiUrl}/operator/stocks`;
+    const cacheKey = `${user?.role || 'guest'}:${endpoint}`;
 
-    return this.http.get<LaravelItem[] | PaginatedResponse<LaravelItem>>(endpoint, { params: firstPageParams() }).pipe(
+    if (!forceRefresh && this.itemsCache?.key === cacheKey && this.itemsCache.expiresAt > Date.now()) {
+      return this.itemsCache.stream$;
+    }
+
+    const stream$ = this.http.get<LaravelItem[] | PaginatedResponse<LaravelItem>>(endpoint, { params: firstPageParams() }).pipe(
       map(response => this.mergeRecentItems(this.mergeDuplicateItems(extractList(response).map(item => this.mapToInventoryItem(item))))),
       switchMap(items => user?.role === 'admin' ? of(items) : this.applyServerStockLocations(items)),
       switchMap(items => this.applyHistoryLocations(items, user?.role === 'admin' ? 'admin' : 'operator')),
-      catchError(() => of([]))
+      catchError(() => of([])),
+      shareReplay({ bufferSize: 1, refCount: false })
     );
+
+    this.itemsCache = {
+      key: cacheKey,
+      expiresAt: Date.now() + this.shortCacheMs,
+      stream$,
+    };
+
+    return stream$;
   }
 
   getItemById(id: string): Observable<InventoryItem | undefined> {
@@ -189,13 +215,28 @@ export class InventoryService {
 
   getCategories(): Observable<LaravelCategory[]> {
     const user = this.authService.getCurrentUser();
+    const cacheKey = user?.role || 'guest';
+
+    if (this.categoriesCache?.key === cacheKey && this.categoriesCache.expiresAt > Date.now()) {
+      return this.categoriesCache.stream$;
+    }
+
     const categoryEndpoints = user?.role === 'admin'
       ? ['categories', 'admin/categories', 'operator/categories']
       : ['categories', 'operator/categories', 'admin/categories'];
 
-    return this.tryCategoryEndpoints(categoryEndpoints).pipe(
-      catchError(() => this.getCategoriesFromItems())
+    const stream$ = this.tryCategoryEndpoints(categoryEndpoints).pipe(
+      catchError(() => this.getCategoriesFromItems()),
+      shareReplay({ bufferSize: 1, refCount: false })
     );
+
+    this.categoriesCache = {
+      key: cacheKey,
+      expiresAt: Date.now() + this.longCacheMs,
+      stream$,
+    };
+
+    return stream$;
   }
 
   getItemByBarcode(barcode: string): Observable<InventoryItem | undefined> {
@@ -205,17 +246,14 @@ export class InventoryService {
     const rolePrefix = user?.role === 'admin' ? 'admin' : 'operator';
     const attempts = [
       { method: 'GET', url: `${this.apiUrl}/${rolePrefix}/items/barcode/${encodedBarcode}` },
-      { method: 'GET', url: `${this.apiUrl}/${rolePrefix}/items/scan/${encodedBarcode}` },
-      { method: 'GET', url: `${this.apiUrl}/${rolePrefix}/barcode/${encodedBarcode}` },
-      { method: 'GET', url: `${this.apiUrl}/${rolePrefix}/scan-barcode/${encodedBarcode}` },
       { method: 'GET', url: `${this.apiUrl}/${rolePrefix}/items?barcode=${encodedBarcode}&page=1` },
       { method: 'GET', url: `${this.apiUrl}/items/barcode/${encodedBarcode}` },
       { method: 'GET', url: `${this.apiUrl}/items?barcode=${encodedBarcode}&page=1` },
-      { method: 'POST', url: `${this.apiUrl}/${rolePrefix}/items/scan`, body: { barcode: cleanBarcode } },
-      { method: 'POST', url: `${this.apiUrl}/${rolePrefix}/scan-barcode`, body: { barcode: cleanBarcode } },
     ];
 
-    return this.tryBarcodeEndpoint(attempts, cleanBarcode);
+    return this.findItemLocallyByBarcode(cleanBarcode).pipe(
+      switchMap(item => item ? of(item) : this.tryBarcodeEndpoint(attempts, cleanBarcode))
+    );
   }
 
   deleteItem(id: string): Observable<any> {
@@ -1020,24 +1058,39 @@ export class InventoryService {
   }
 
   private applyHistoryLocations(items: InventoryItem[], role: 'admin' | 'operator'): Observable<InventoryItem[]> {
+    if (items.length && items.every(item => item.hasServerStockLocations)) {
+      return of(items);
+    }
+
     const historyEndpoint = role === 'admin'
       ? `${this.apiUrl}/admin/monitoring/history`
       : `${this.apiUrl}/operator/history`;
+    const cacheKey = role;
 
-    return forkJoin({
-      history: this.http
-        .get<any[] | PaginatedResponse<any>>(historyEndpoint, { params: firstPageParams() })
-        .pipe(
-          map(response => extractList(response)),
-          catchError(() => of([]))
+    if (!this.historyLocationsCache || this.historyLocationsCache.key !== cacheKey || this.historyLocationsCache.expiresAt <= Date.now()) {
+      this.historyLocationsCache = {
+        key: cacheKey,
+        expiresAt: Date.now() + this.shortCacheMs,
+        stream$: forkJoin({
+          history: this.http
+            .get<any[] | PaginatedResponse<any>>(historyEndpoint, { params: firstPageParams() })
+            .pipe(
+              map(response => extractList(response)),
+              catchError(() => of([]))
+            ),
+          locations: this.http
+            .get<any[] | PaginatedResponse<any>>(`${this.apiUrl}/locations`, { params: firstPageParams() })
+            .pipe(
+              map(response => extractList(response)),
+              catchError(() => of([]))
+            ),
+        }).pipe(
+          shareReplay({ bufferSize: 1, refCount: false })
         ),
-      locations: this.http
-        .get<any[] | PaginatedResponse<any>>(`${this.apiUrl}/locations`, { params: firstPageParams() })
-        .pipe(
-          map(response => extractList(response)),
-          catchError(() => of([]))
-        ),
-    }).pipe(
+      };
+    }
+
+    return this.historyLocationsCache.stream$.pipe(
       map(({ history, locations }) => this.mergeLocationsFromHistory(items, history, locations)),
       catchError(() => of(items))
     );
@@ -1050,7 +1103,24 @@ export class InventoryService {
     );
   }
 
-  private fetchServerStockLocations(index = 0): Observable<any[]> {
+  private fetchServerStockLocations(): Observable<any[]> {
+    if (this.stockLocationsCache?.expiresAt && this.stockLocationsCache.expiresAt > Date.now()) {
+      return this.stockLocationsCache.stream$;
+    }
+
+    const stream$ = this.fetchServerStockLocationsAttempt().pipe(
+      shareReplay({ bufferSize: 1, refCount: false })
+    );
+
+    this.stockLocationsCache = {
+      expiresAt: Date.now() + this.shortCacheMs,
+      stream$,
+    };
+
+    return stream$;
+  }
+
+  private fetchServerStockLocationsAttempt(index = 0): Observable<any[]> {
     const endpoints = [
       `${this.apiUrl}/operator/stock-locations`,
       `${this.apiUrl}/operator/stock-location`,
@@ -1065,8 +1135,8 @@ export class InventoryService {
 
     return this.http.get<any[] | PaginatedResponse<any>>(endpoints[index], { params: firstPageParams() }).pipe(
       map(response => extractList(response)),
-      switchMap(records => records.length ? of(records) : this.fetchServerStockLocations(index + 1)),
-      catchError(() => this.fetchServerStockLocations(index + 1))
+      switchMap(records => records.length ? of(records) : this.fetchServerStockLocationsAttempt(index + 1)),
+      catchError(() => this.fetchServerStockLocationsAttempt(index + 1))
     );
   }
 

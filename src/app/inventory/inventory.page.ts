@@ -225,12 +225,6 @@ export class InventoryPage {
   }
 
   async openBarcodeScanner() {
-    const allowed = window.confirm('Izinkan aplikasi membuka kamera untuk memindai QR atau kode batang?');
-
-    if (!allowed) {
-      return;
-    }
-
     if (!navigator.mediaDevices?.getUserMedia) {
       alert('Perangkat ini belum mendukung akses kamera.');
       return;

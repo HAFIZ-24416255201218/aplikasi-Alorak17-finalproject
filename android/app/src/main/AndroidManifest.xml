@@ -12,6 +12,7 @@
         android:roundIcon="@mipmap/gudang"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:usesCleartextTraffic="false">
 
         <activity

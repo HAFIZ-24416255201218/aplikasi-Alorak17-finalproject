@@ -64,6 +64,24 @@
         <small class="lookup-message" *ngIf="barcodeLookupMessage">{{ barcodeLookupMessage }}</small>
       </label>
 
+      <div class="primary-fields" aria-label="Input utama barang masuk">
+        <label class="field feature-field">
+          <span>Lokasi Tujuan</span>
+          <div class="select-wrap">
+            <select [(ngModel)]="form.destLocation" name="destLocation">
+              <option value="" disabled>Pilih lokasi tujuan</option>
+              <option *ngFor="let location of locationsList" [value]="location.id">{{ location.display_name || location.name }}</option>
+            </select>
+            <ion-icon name="chevron-down-outline"></ion-icon>
+          </div>
+        </label>
+
+        <label class="field feature-field">
+          <span>Jumlah</span>
+          <input [(ngModel)]="form.quantity" name="quantity" type="number" placeholder="Masukkan jumlah" />
+        </label>
+      </div>
+
       <label class="field">
         <span>Kategori</span>
         <div class="select-wrap">
@@ -94,22 +112,6 @@
       </div>
 
 
-
-      <label class="field">
-        <span>Lokasi Tujuan</span>
-        <div class="select-wrap">
-          <select [(ngModel)]="form.destLocation" name="destLocation">
-            <option value="" disabled>Pilih lokasi tujuan</option>
-            <option *ngFor="let location of locationsList" [value]="location.id">{{ location.display_name || location.name }}</option>
-          </select>
-          <ion-icon name="chevron-down-outline"></ion-icon>
-        </div>
-      </label>
-
-      <label class="field">
-        <span>Jumlah</span>
-        <input [(ngModel)]="form.quantity" name="quantity" type="number" placeholder="Masukkan jumlah" />
-      </label>
 
       <label class="field">
         <span>Catatan (Opsional)</span>

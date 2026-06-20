@@ -38,23 +38,25 @@
         <strong>{{ item.quantity }} {{ item.unit }}</strong>
       </div>
 
-      <label class="field">
-        <span>Jumlah</span>
-        <input [(ngModel)]="form.quantity" name="quantity" type="number" placeholder="Masukkan jumlah" />
-      </label>
+      <div class="primary-fields" aria-label="Input utama barang keluar">
+        <label class="field feature-field">
+          <span>Jumlah</span>
+          <input [(ngModel)]="form.quantity" name="quantity" type="number" placeholder="Masukkan jumlah" />
+        </label>
 
-      <label class="field">
-        <span>Dari Lokasi</span>
-        <div class="select-wrap">
-          <select [(ngModel)]="form.fromLocation" name="fromLocation">
-            <option value="" selected disabled>Pilih lokasi asal...</option>
-            <option *ngFor="let location of sourceLocationOptions" [value]="location.value">
-              {{ location.label }} - {{ location.quantity }} {{ selectedItem?.unit || 'unit' }}
-            </option>
-          </select>
-          <ion-icon name="chevron-down-outline"></ion-icon>
-        </div>
-      </label>
+        <label class="field feature-field">
+          <span>Dari Lokasi</span>
+          <div class="select-wrap">
+            <select [(ngModel)]="form.fromLocation" name="fromLocation">
+              <option value="" selected disabled>Pilih lokasi asal...</option>
+              <option *ngFor="let location of sourceLocationOptions" [value]="location.value">
+                {{ location.label }} - {{ location.quantity }} {{ selectedItem?.unit || 'unit' }}
+              </option>
+            </select>
+            <ion-icon name="chevron-down-outline"></ion-icon>
+          </div>
+        </label>
+      </div>
 
       <label class="field">
         <span>Catatan (Opsional)</span>

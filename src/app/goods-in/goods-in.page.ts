@@ -88,6 +88,8 @@ export class GoodsInPage {
   ) {}
 
   ionViewWillEnter() {
+    this.isSubmitting = false;
+    this.stopScanner();
     this.resetForm();
     this.inventoryService.getItems().subscribe(items => {
       this.inventoryItems = items;
@@ -169,12 +171,6 @@ export class GoodsInPage {
   }
 
   async openBarcodeScanner() {
-    const allowed = window.confirm('Izinkan aplikasi membuka kamera untuk memindai barcode?');
-
-    if (!allowed) {
-      return;
-    }
-
     if (!navigator.mediaDevices?.getUserMedia) {
       window.alert('Perangkat ini belum mendukung akses kamera.');
       return;
@@ -712,6 +708,8 @@ export class GoodsInPage {
       route: this.getSelectedLocationName(),
     }).subscribe({
       next: () => {
+        this.isSubmitting = false;
+        this.inventoryService.invalidateCache();
         this.notificationService.refresh();
         this.router.navigate(['/inventory']);
       },

@@ -40,6 +40,7 @@ export class GoodsOutPage {
   ) {}
 
   ionViewWillEnter() {
+    this.isSubmitting = false;
     this.inventoryService.getItems().subscribe(items => {
       this.inventoryItems = items;
     });
@@ -101,7 +102,9 @@ export class GoodsOutPage {
       route: sourceLocation?.label,
     }).subscribe({
       next: response => {
+        this.isSubmitting = false;
         this.rememberUpdatedStock(selectedItem, quantity, sourceLocation, response);
+        this.inventoryService.invalidateCache();
         this.notificationService.refresh();
         this.router.navigate(['/inventory-detail', selectedItem.id]);
       },
