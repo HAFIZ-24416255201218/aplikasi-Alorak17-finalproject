@@ -82,6 +82,9 @@ ion-content::part(scroll) {
   right: 12px !important;
   bottom: 10px !important;
   left: 12px !important;
+  width: auto !important;
+  max-width: calc(100% - 24px) !important;
+  margin: 0 !important;
   background: rgba(255, 255, 255, 0.94) !important;
   border: 1px solid rgba(231, 237, 245, 0.92) !important;
   border-radius: 22px !important;

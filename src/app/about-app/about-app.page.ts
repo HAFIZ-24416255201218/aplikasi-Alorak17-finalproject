@@ -8,7 +8,7 @@ import { Router } from '@angular/router';
   standalone: false,
 })
 export class AboutAppPage {
-  appVersion = '2.4.1';
+  appVersion = '1.7.0';
   releaseDate = '2026';
   features = [
     {
@@ -43,7 +43,7 @@ export class AboutAppPage {
     }
   ];
 
-  constructor(private router: Router) {}
+  constructor(private router: Router) { }
 
   goBack() {
     this.router.navigate(['/profile']);
