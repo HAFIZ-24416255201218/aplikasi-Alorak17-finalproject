@@ -1,0 +1,69 @@
+<ion-content>
+  <main class="privacy-page">
+    <section class="privacy-card" aria-label="Persetujuan privacy policy">
+      <div class="hero-panel">
+        <div class="shield-badge">
+          <ion-icon name="shield-checkmark-outline"></ion-icon>
+        </div>
+      </div>
+
+      <span class="step-badge">Slide 4 dari 4</span>
+
+      <div class="privacy-copy">
+        <h1>Privacy Policy</h1>
+        <p>
+          Aplikasi ini memakai data yang kamu input hanya untuk kebutuhan sistem gudang,
+          seperti pengelolaan produk, stok, barang masuk, dan barang keluar.
+        </p>
+      </div>
+
+      <div class="policy-list">
+        <div class="policy-item">
+          <span class="check-icon">
+            <ion-icon name="checkmark-outline"></ion-icon>
+          </span>
+          <span>Data dikirim ke API backend Laravel</span>
+        </div>
+        <div class="policy-item">
+          <span class="check-icon">
+            <ion-icon name="checkmark-outline"></ion-icon>
+          </span>
+          <span>Data tersimpan di database MySQL</span>
+        </div>
+        <div class="policy-item">
+          <span class="check-icon">
+            <ion-icon name="checkmark-outline"></ion-icon>
+          </span>
+          <span>Lanjutkan hanya jika kamu setuju</span>
+        </div>
+      </div>
+
+      <label class="agreement-row">
+        <input type="checkbox" [(ngModel)]="hasAgreed" />
+        <span>
+          Saya sudah membaca dan menyetujui
+          <a [href]="privacyPolicyUrl" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+          aplikasi ini.
+        </span>
+      </label>
+
+      <div class="pagination" aria-label="Progress onboarding">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span class="active"></span>
+      </div>
+
+      <div class="actions">
+        <button class="secondary-button" type="button" (click)="goBack()">
+          <ion-icon name="chevron-back-outline"></ion-icon>
+          <span>Kembali</span>
+        </button>
+        <button class="primary-button" type="button" [disabled]="!hasAgreed" (click)="continueToLogin()">
+          <span>Masuk Aplikasi</span>
+          <ion-icon name="chevron-forward-outline"></ion-icon>
+        </button>
+      </div>
+    </section>
+  </main>
+</ion-content>

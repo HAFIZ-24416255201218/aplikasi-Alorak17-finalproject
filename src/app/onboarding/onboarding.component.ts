@@ -51,7 +51,8 @@ export class OnboardingComponent implements OnInit {
     }
 
     if (hasCompletedOnboarding) {
-      this.router.navigate(['/login'], { replaceUrl: true });
+      const hasAcceptedPrivacyPolicy = localStorage.getItem('hasAcceptedPrivacyPolicy') === 'true';
+      this.router.navigate([hasAcceptedPrivacyPolicy ? '/login' : '/privacy-policy'], { replaceUrl: true });
     }
   }
 
@@ -84,7 +85,7 @@ export class OnboardingComponent implements OnInit {
 
   startApp() {
     localStorage.setItem('hasCompletedOnboarding', 'true');
-    this.router.navigate(['/login'], { replaceUrl: true });
+    this.router.navigate(['/privacy-policy']);
   }
 
   onTouchStart(event: TouchEvent) {

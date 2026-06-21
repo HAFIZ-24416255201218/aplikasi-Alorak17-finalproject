@@ -14,6 +14,11 @@ const routes: Routes = [
     loadChildren: () => import('./login/login.module').then(m => m.LoginPageModule)
   },
   {
+    path: 'privacy-policy',
+    canActivate: [publicOnlyGuard],
+    loadChildren: () => import('./privacy-policy/privacy-policy.module').then(m => m.PrivacyPolicyPageModule)
+  },
+  {
     path: 'dashboard',
     canActivate: [authGuard],
     loadChildren: () => import('./home/home.module').then( m => m.HomePageModule)

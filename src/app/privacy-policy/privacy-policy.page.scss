@@ -1,0 +1,220 @@
+ion-content {
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --background: #f3f8ff;
+}
+
+.privacy-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: calc(18px + env(safe-area-inset-top)) 18px calc(18px + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  background:
+    radial-gradient(circle at 88% 14%, rgba(25, 118, 210, 0.12) 0 116px, transparent 118px),
+    linear-gradient(180deg, #f5f9ff 0%, #ffffff 54%, #edf5ff 100%);
+}
+
+.privacy-card {
+  width: min(100%, 430px);
+  min-height: min(720px, calc(100dvh - 36px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
+  padding: 18px;
+  border: 1px solid rgba(201, 219, 245, 0.9);
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 24px 60px rgba(31, 75, 130, 0.16);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.hero-panel {
+  min-height: 196px;
+  border-radius: 26px;
+  background:
+    linear-gradient(135deg, rgba(227, 240, 255, 0.9), rgba(207, 228, 252, 0.72)),
+    url("/assets/privacy/privasi3.jpg") center / cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.shield-badge {
+  width: 118px;
+  height: 118px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a1841f;
+  box-shadow: 0 14px 34px rgba(44, 89, 145, 0.16);
+
+  ion-icon {
+    font-size: 52px;
+  }
+}
+
+.step-badge {
+  width: fit-content;
+  margin: 22px 0 12px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: #f7d36a;
+  color: #5f4612;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.privacy-copy h1 {
+  margin: 0 0 12px;
+  color: #172033;
+  font-size: 30px;
+  line-height: 1.05;
+  font-weight: 900;
+}
+
+.privacy-copy p {
+  margin: 0;
+  color: #667085;
+  font-size: 14px;
+  line-height: 1.58;
+  font-weight: 700;
+}
+
+.policy-list {
+  display: grid;
+  gap: 16px;
+  margin: 28px 0 22px;
+}
+
+.policy-item {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  color: #253047;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.check-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #eef7d5;
+  color: #8a9f25;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  ion-icon {
+    font-size: 16px;
+  }
+}
+
+.agreement-row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: flex-start;
+  gap: 12px;
+  color: #253047;
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 900;
+}
+
+.agreement-row input {
+  width: 20px;
+  height: 20px;
+  margin: 1px 0 0;
+  accent-color: #1976d2;
+}
+
+.agreement-row a {
+  color: #1976d2;
+  text-decoration: none;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding: 28px 0 18px;
+}
+
+.pagination span {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #c9d9ee;
+}
+
+.pagination .active {
+  width: 28px;
+  background: #1976d2;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1.35fr;
+  gap: 12px;
+}
+
+.primary-button,
+.secondary-button {
+  min-height: 52px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  letter-spacing: 0;
+}
+
+.primary-button {
+  border: 0;
+  background: linear-gradient(135deg, #1976d2 0%, #2e8cf6 100%);
+  color: #ffffff;
+  box-shadow: 0 14px 28px rgba(25, 118, 210, 0.28);
+}
+
+.primary-button:disabled {
+  opacity: 0.48;
+  box-shadow: none;
+}
+
+.secondary-button {
+  border: 2px solid #27384e;
+  background: #ffffff;
+  color: #27384e;
+}
+
+@media (max-width: 380px) {
+  .privacy-page {
+    padding-inline: 12px;
+  }
+
+  .privacy-card {
+    border-radius: 24px;
+    padding: 14px;
+  }
+
+  .hero-panel {
+    min-height: 170px;
+  }
+
+  .privacy-copy h1 {
+    font-size: 28px;
+  }
+
+  .actions {
+    grid-template-columns: 1fr;
+  }
+}

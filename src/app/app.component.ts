@@ -39,7 +39,7 @@ export class AppComponent {
   }
 
   get isAuthPage(): boolean {
-    const authRoutes = ['/onboarding', '/login'];
+    const authRoutes = ['/onboarding', '/privacy-policy', '/login'];
     return authRoutes.some(route => this.router.url.startsWith(route));
   }
 
@@ -51,7 +51,8 @@ export class AppComponent {
     const currentRoute = this.router.url.split('?')[0];
     const isLoggedIn = this.authService.isLoggedIn();
     const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding') === 'true';
-    const publicRoutes = ['/onboarding', '/login'];
+    const hasAcceptedPrivacyPolicy = localStorage.getItem('hasAcceptedPrivacyPolicy') === 'true';
+    const publicRoutes = ['/onboarding', '/privacy-policy', '/login'];
     const isPublicRoute = publicRoutes.includes(currentRoute);
 
     if (isLoggedIn && isPublicRoute) {
@@ -64,7 +65,12 @@ export class AppComponent {
       return;
     }
 
-    if (!isLoggedIn && hasCompletedOnboarding && currentRoute === '/onboarding') {
+    if (!isLoggedIn && hasCompletedOnboarding && !hasAcceptedPrivacyPolicy && currentRoute !== '/privacy-policy') {
+      this.router.navigate(['/privacy-policy'], { replaceUrl: true });
+      return;
+    }
+
+    if (!isLoggedIn && hasCompletedOnboarding && hasAcceptedPrivacyPolicy && currentRoute === '/onboarding') {
       this.router.navigate(['/login'], { replaceUrl: true });
       return;
     }
@@ -78,6 +84,18 @@ export class AppComponent {
     this.platform.backButton.subscribeWithPriority(10, async () => {
       if (this.isDashboardRoute()) {
         await this.confirmExitApp();
+        return;
+      }
+
+      if (this.router.url.split('?')[0] === '/login') {
+        this.router.navigate(['/privacy-policy']);
+        return;
+      }
+
+      if (this.router.url.split('?')[0] === '/privacy-policy') {
+        localStorage.removeItem('hasCompletedOnboarding');
+        localStorage.removeItem('hasAcceptedPrivacyPolicy');
+        this.router.navigate(['/onboarding']);
         return;
       }
 

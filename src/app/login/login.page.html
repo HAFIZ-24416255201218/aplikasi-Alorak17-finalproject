@@ -5,10 +5,10 @@
     <div class="form-section">
       <div class="logo-section">
         <div class="logo-box">
-          <img src="assets/logobaru.png" alt="WMS Operator Logo" class="logo-image" />
+          <img src="assets/alorackweb.png" alt="Alorack Operator Logo" class="logo-image" />
         </div>
         <div class="brand-copy">
-          <h1 class="app-title">WMS Operator</h1>
+          <h1 class="app-title">Alorack Operator</h1>
           <p class="app-subtitle">Akses gudang mobile</p>
         </div>
       </div>
@@ -21,21 +21,12 @@
 
         <div class="form-group">
           <label for="email" class="form-label">Email</label>
-          <input
-            id="email"
-            type="email"
-            formControlName="email"
-            class="form-input"
-            placeholder="Masukkan email Anda"
-            autocomplete="email"
-          />
-          <div
-            *ngIf="
+          <input id="email" type="email" formControlName="email" class="form-input" placeholder="Masukkan email Anda"
+            autocomplete="email" />
+          <div *ngIf="
               loginForm.get('email')?.invalid &&
               loginForm.get('email')?.touched
-            "
-            class="error-text"
-          >
+            " class="error-text">
             Email tidak valid
           </div>
         </div>
@@ -43,47 +34,23 @@
         <div class="form-group">
           <label for="password" class="form-label">Password</label>
           <div class="password-input-wrapper">
-            <input
-              id="password"
-              [type]="showPassword ? 'text' : 'password'"
-              formControlName="password"
-              class="form-input"
-              placeholder="Masukkan password Anda"
-              autocomplete="current-password"
-            />
-            <button
-              type="button"
-              class="password-toggle"
-              (click)="togglePasswordVisibility()"
-              *ngIf="loginForm.get('password')?.value"
-            >
-              <ion-icon
-                [name]="showPassword ? 'eye-off' : 'eye'"
-              ></ion-icon>
+            <input id="password" [type]="showPassword ? 'text' : 'password'" formControlName="password"
+              class="form-input" placeholder="Masukkan password Anda" autocomplete="current-password" />
+            <button type="button" class="password-toggle" (click)="togglePasswordVisibility()"
+              *ngIf="loginForm.get('password')?.value">
+              <ion-icon [name]="showPassword ? 'eye-off' : 'eye'"></ion-icon>
             </button>
           </div>
-          <div
-            *ngIf="
+          <div *ngIf="
               loginForm.get('password')?.invalid &&
               loginForm.get('password')?.touched
-            "
-            class="error-text"
-          >
+            " class="error-text">
             Password minimal 6 karakter
           </div>
         </div>
 
-        <button
-          type="button"
-          class="sign-in-button"
-          (click)="onLogin()"
-          [disabled]="loginForm.invalid || loading"
-        >
-          <ion-spinner
-            *ngIf="loading"
-            name="crescent"
-            class="button-spinner"
-          ></ion-spinner>
+        <button type="button" class="sign-in-button" (click)="onLogin()" [disabled]="loginForm.invalid || loading">
+          <ion-spinner *ngIf="loading" name="crescent" class="button-spinner"></ion-spinner>
           <span *ngIf="!loading">Masuk</span>
           <span *ngIf="loading">Memuat...</span>
         </button>
