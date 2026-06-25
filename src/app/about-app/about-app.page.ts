@@ -8,7 +8,7 @@ import { Router } from '@angular/router';
   standalone: false,
 })
 export class AboutAppPage {
-  appVersion = '1.7.0';
+  appVersion = '1.9.0';
   releaseDate = '2026';
   features = [
     {
