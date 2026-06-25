@@ -95,23 +95,4 @@
   </div>
 </ion-content>
 
-<ion-footer class="footer-nav app-bottom-nav" *ngIf="item">
-  <div class="nav-wrapper">
-    <div class="nav-item" (click)="goToHome()">
-      <ion-icon name="home-outline"></ion-icon>
-      <span>Beranda</span>
-    </div>
-    <div class="nav-item active">
-      <ion-icon name="layers-outline"></ion-icon>
-      <span>Inventori</span>
-    </div>
-    <div class="nav-item" (click)="goToHistory()">
-      <ion-icon name="time-outline"></ion-icon>
-      <span>Riwayat</span>
-    </div>
-    <div class="nav-item" (click)="goToProfile()">
-      <ion-icon name="person-outline"></ion-icon>
-      <span>Profil</span>
-    </div>
-  </div>
-</ion-footer>
+<app-bottom-nav active="inventory" *ngIf="item"></app-bottom-nav>

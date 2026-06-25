@@ -78,6 +78,7 @@ export class GoodsInPage {
   private nativeScanTimer?: number;
   private lookupTimers: Partial<Record<'barcode' | 'code', number>> = {};
   private lastLookupKeys: Partial<Record<'barcode' | 'code', string>> = {};
+  activeLookupSource: 'barcode' | 'code' | '' = '';
 
   constructor(
     private router: Router,
@@ -138,6 +139,22 @@ export class GoodsInPage {
     }));
   }
 
+  get itemFieldsLocked() {
+    return Boolean(this.form.selectedItem);
+  }
+
+  get isCodeFieldLocked() {
+    return this.itemFieldsLocked && this.activeLookupSource !== 'code';
+  }
+
+  get isBarcodeFieldLocked() {
+    return this.itemFieldsLocked && this.activeLookupSource !== 'barcode';
+  }
+
+  get areItemDetailFieldsLocked() {
+    return this.itemFieldsLocked;
+  }
+
   get destLocationOptions() {
     const savedLocations = this.inventoryItems.reduce<string[]>((locations, item) => {
       if (item.locations?.length) {
@@ -153,6 +170,7 @@ export class GoodsInPage {
 
 
   generateItemCode() {
+    this.clearSelectedItemLock();
     this.form.itemCode = this.createRandomItemCode();
   }
 
@@ -173,10 +191,8 @@ export class GoodsInPage {
     }
 
     if (!cleanValue) {
-      if (source === 'barcode') {
-        this.form.selectedItem = '';
-        this.barcodeLookupMessage = '';
-      }
+      this.clearSelectedItemLock();
+      this.barcodeLookupMessage = '';
       return;
     }
 
@@ -486,6 +502,8 @@ export class GoodsInPage {
       quantity: '',
       notes: '',
     };
+    this.activeLookupSource = '';
+    this.barcodeLookupMessage = '';
   }
 
   private createRandomItemCode() {
@@ -528,7 +546,7 @@ export class GoodsInPage {
 
     const localItem = this.findLoadedItemByCodeOrBarcode(value);
     if (localItem) {
-      this.fillFormFromItem(localItem, source === 'barcode' ? value : undefined);
+      this.fillFormFromItem(localItem, source === 'barcode' ? value : undefined, source);
       this.barcodeLookupMessage = 'Barang ditemukan. Data otomatis terisi.';
       return;
     }
@@ -549,7 +567,7 @@ export class GoodsInPage {
           return;
         }
 
-        this.fillFormFromItem(item, source === 'barcode' ? value : undefined);
+        this.fillFormFromItem(item, source === 'barcode' ? value : undefined, source);
         this.barcodeLookupMessage = 'Barang ditemukan. Data otomatis terisi.';
       },
       error: () => {
@@ -576,8 +594,9 @@ export class GoodsInPage {
     });
   }
 
-  private fillFormFromItem(item: InventoryItem, scannedBarcode?: string) {
+  private fillFormFromItem(item: InventoryItem, scannedBarcode?: string, source: 'barcode' | 'code' = scannedBarcode ? 'barcode' : 'code') {
     this.form.selectedItem = item.id;
+    this.activeLookupSource = source;
     this.form.itemName = item.name;
     this.form.itemCode = item.sku;
     this.form.barcode = scannedBarcode || item.barcode || '';
@@ -587,6 +606,12 @@ export class GoodsInPage {
     this.form.mediumThreshold = String(item.mediumThreshold || 150);
     this.form.destLocation = this.resolveLocationIdFromName(item.location);
     this.form.notes = item.notes || '';
+  }
+
+  private clearSelectedItemLock() {
+    this.form.selectedItem = '';
+    this.activeLookupSource = '';
+    this.lastLookupKeys = {};
   }
 
   private resolveLocationIdFromName(name?: string): string {

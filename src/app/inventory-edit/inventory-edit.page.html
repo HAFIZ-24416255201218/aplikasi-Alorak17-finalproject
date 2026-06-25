@@ -23,49 +23,32 @@
           <ion-icon name="cube-outline"></ion-icon>
           Informasi Dasar
         </h3>
-        
+
         <div class="form-group">
           <label>
             <ion-icon name="pricetag-outline"></ion-icon>
             Nama Produk
           </label>
-          <input
-            type="text"
-            [(ngModel)]="formData.name"
-            name="name"
-            placeholder="Masukkan nama produk"
-            class="form-input readonly-input"
-            readonly
-          />
+          <input type="text" [(ngModel)]="formData.name" name="name" placeholder="Masukkan nama produk"
+            class="form-input readonly-input" readonly />
         </div>
 
         <div class="form-group">
           <label>
             <ion-icon name="barcode-outline"></ion-icon>
-            Kode Unik
+            Kode Batang
           </label>
-          <input
-            type="text"
-            [(ngModel)]="formData.sku"
-            name="sku"
-            placeholder="Kode unik produk"
-            class="form-input readonly-input"
-            readonly
-          />
+          <input type="text" [(ngModel)]="formData.sku" name="sku" placeholder="Kode unik produk"
+            class="form-input readonly-input" readonly />
         </div>
 
         <div class="form-group">
           <label>
             <ion-icon name="scan-outline"></ion-icon>
-            Kode Batang
+            Kode Unik
           </label>
-          <input
-            type="text"
-            [value]="formData.barcode || '-'"
-            name="barcode"
-            class="form-input readonly-input"
-            readonly
-          />
+          <input type="text" [value]="formData.barcode || '-'" name="barcode" class="form-input readonly-input"
+            readonly />
         </div>
 
         <div class="form-group">
@@ -73,14 +56,8 @@
             <ion-icon name="albums-outline"></ion-icon>
             Kategori
           </label>
-          <input
-            type="text"
-            [(ngModel)]="formData.category"
-            name="category"
-            placeholder="Masukkan kategori"
-            class="form-input readonly-input"
-            readonly
-          />
+          <input type="text" [(ngModel)]="formData.category" name="category" placeholder="Masukkan kategori"
+            class="form-input readonly-input" readonly />
         </div>
       </div>
 
@@ -96,14 +73,8 @@
               <ion-icon name="settings-outline"></ion-icon>
               Unit
             </label>
-            <input
-              type="text"
-              [(ngModel)]="formData.unit"
-              name="unit"
-              placeholder="pcs, box, dll"
-              class="form-input readonly-input"
-              readonly
-            />
+            <input type="text" [(ngModel)]="formData.unit" name="unit" placeholder="pcs, box, dll"
+              class="form-input readonly-input" readonly />
           </div>
         </div>
 
@@ -113,13 +84,8 @@
               <ion-icon name="alert-circle-outline"></ion-icon>
               Batas Minimum Stok
             </label>
-            <input
-              type="number"
-              [(ngModel)]="formData.minThreshold"
-              name="minThreshold"
-              placeholder="Batas minimum"
-              class="form-input"
-            />
+            <input type="number" [(ngModel)]="formData.minThreshold" name="minThreshold" placeholder="Batas minimum"
+              class="form-input" />
           </div>
 
           <div class="form-group">
@@ -127,13 +93,8 @@
               <ion-icon name="checkmark-circle-outline"></ion-icon>
               Batas Stok Sedang
             </label>
-            <input
-              type="number"
-              [(ngModel)]="formData.mediumThreshold"
-              name="mediumThreshold"
-              placeholder="Batas sedang"
-              class="form-input"
-            />
+            <input type="number" [(ngModel)]="formData.mediumThreshold" name="mediumThreshold"
+              placeholder="Batas sedang" class="form-input" />
           </div>
         </div>
       </div>
@@ -154,23 +115,4 @@
   </div>
 </ion-content>
 
-<ion-footer class="footer-nav app-bottom-nav">
-  <div class="nav-wrapper">
-    <div class="nav-item" (click)="goToHome()">
-      <ion-icon name="home-outline"></ion-icon>
-      <span>Beranda</span>
-    </div>
-    <div class="nav-item active">
-      <ion-icon name="layers-outline"></ion-icon>
-      <span>Inventori</span>
-    </div>
-    <div class="nav-item" (click)="goToHistory()">
-      <ion-icon name="time-outline"></ion-icon>
-      <span>Riwayat</span>
-    </div>
-    <div class="nav-item" (click)="goToProfile()">
-      <ion-icon name="person-outline"></ion-icon>
-      <span>Profil</span>
-    </div>
-  </div>
-</ion-footer>
+<app-bottom-nav active="inventory"></app-bottom-nav>

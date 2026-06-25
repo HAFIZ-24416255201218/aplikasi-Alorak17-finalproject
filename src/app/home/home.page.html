@@ -1,117 +1,71 @@
 <ion-content [fullscreen]="false" class="dashboard-content">
-  <section class="dashboard-hero">
-    <div class="hero-brand">
-      <img src="assets/logoilang.png" alt="Logo Gudang" />
-    </div>
+  <main class="dashboard-shell">
+    <header class="dashboard-header">
+      <div>
+        <h1>Dashboard</h1>
+        <p>Halo, {{ username }}</p>
+        <span>Selamat datang di Alorack17</span>
+      </div>
 
-    <button class="hero-notification" type="button" aria-label="Notifikasi" (click)="goToNotifications()">
-      <ion-icon name="notifications-outline"></ion-icon>
-      <span class="notification-dot" *ngIf="unreadCount > 0"></span>
-    </button>
-  </section>
+      <button class="notification-button" type="button" aria-label="Notifikasi" (click)="goToNotifications(); $event.stopPropagation()">
+        <ion-icon name="notifications-outline"></ion-icon>
+        <span class="notification-dot" *ngIf="unreadCount > 0"></span>
+      </button>
+    </header>
 
-  <div class="statistics-section">
-    <div class="stats-grid">
-      <div class="stat-card" *ngFor="let stat of statistics" [ngClass]="stat.theme">
-        <div class="stat-head">
-          <div class="stat-icon" [style.color]="stat.color">
-            <ion-icon [name]="stat.icon"></ion-icon>
-          </div>
-          <div class="stat-label">{{ stat.label }}</div>
+    <section class="stats-grid" aria-label="Statistik dashboard">
+      <article class="stat-card" *ngFor="let stat of statistics" [ngClass]="stat.theme">
+        <span>{{ stat.label }}</span>
+        <strong>{{ stat.value }}</strong>
+      </article>
+    </section>
+
+    <section class="summary-card">
+      <h2>Ringkasan Stok</h2>
+      <div class="summary-body">
+        <div class="stock-pie" [style.background]="pieGradient" aria-hidden="true">
+          <span></span>
         </div>
 
-        <div class="stat-value">{{ stat.value }}</div>
-
-        <div class="stat-trend" [style.color]="stat.color">
-          <ion-icon name="trending-up-outline"></ion-icon>
-          <span>{{ stat.trend }}</span>
+        <div class="summary-legend">
+          <div class="legend-row" *ngFor="let item of stockSummaryItems">
+            <span class="legend-dot" [style.background]="item.color"></span>
+            <span class="legend-name">{{ item.label }}</span>
+            <strong>{{ item.percent }}%</strong>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
+    </section>
 
-  <div class="quick-actions-section">
-    <h2 class="section-title">AKSI CEPAT</h2>
-    <div class="actions-grid">
-      <button class="action-button" *ngFor="let action of quickActions" [style.background]="action.color" (click)="handleQuickAction(action.action)">
-        <ion-icon [name]="action.icon"></ion-icon>
-        <span>{{ action.label }}</span>
-      </button>
-    </div>
-  </div>
-
-  <div class="low-stock-section">
-    <div class="section-header">
-      <h2 class="section-title">
-        <ion-icon name="alert-circle-outline" class="alert-icon"></ion-icon>
-        PERINGATAN STOK RENDAH ({{ lowStockItems.length }})
-      </h2>
-    </div>
-    <div class="low-stock-items">
-      <button class="stock-item" type="button" *ngFor="let item of lowStockItems" (click)="goToProductDetail(item.id)">
-        <div class="stock-info">
-          <h3>{{ item.name }}</h3>
-          <span class="stock-count">{{ item.current }} / {{ item.total }} unit</span>
-        </div>
-        <div class="progress-section">
-          <div class="progress-bar-wrapper">
-            <div class="progress-bar" [style.width.%]="item.percentage"></div>
-          </div>
-          <span class="percentage-badge">{{ item.percentage }}%</span>
-        </div>
-      </button>
-    </div>
-  </div>
-
-  <div class="recent-activity-section">
-    <div class="activity-header">
-      <h2 class="section-title">AKTIVITAS TERBARU</h2>
-      <button class="view-all-link" (click)="goToHistory()">
-        <span>Lihat Semua</span>
-        <ion-icon name="arrow-forward-outline"></ion-icon>
-      </button>
-    </div>
-    <div class="activity-list">
-      <div class="activity-item" *ngFor="let activity of recentActivities">
-        <div class="activity-icon" [style.background-color]="activity.color + '20'">
-          <ion-icon [name]="activity.icon" [style.color]="activity.color"></ion-icon>
-        </div>
-        <div class="activity-details">
-          <div class="activity-name">{{ activity.name }}</div>
-          <div class="activity-meta">
-            <span class="activity-change">{{ activity.change }}</span>
-            <span class="activity-time">
-              <ion-icon name="time-outline" class="time-icon"></ion-icon>
-              {{ activity.time }}
-            </span>
-          </div>
-        </div>
-        <div class="activity-photo" *ngIf="activity.imageData">
-          <img [src]="activity.imageData" [alt]="'Foto produk ' + activity.name" />
-        </div>
-        <ion-icon name="chevron-forward-outline" class="chevron-icon"></ion-icon>
+    <section class="recent-activity-section">
+      <div class="section-heading">
+        <h2>Aktivitas Terbaru</h2>
+        <button type="button" (click)="goToHistory(); $event.stopPropagation()" aria-label="Lihat semua aktivitas">
+          <ion-icon name="arrow-forward-outline"></ion-icon>
+        </button>
       </div>
-    </div>
-  </div>
+
+      <div class="activity-list" *ngIf="recentActivities.length > 0; else emptyActivities">
+        <article class="activity-item" *ngFor="let activity of recentActivities">
+          <div class="activity-icon">
+            <ion-icon [name]="activity.icon"></ion-icon>
+          </div>
+          <div class="activity-copy">
+            <strong>{{ activity.typeLabel }}</strong>
+            <span>{{ activity.name }}</span>
+          </div>
+          <time>{{ activity.time }}</time>
+        </article>
+      </div>
+
+      <ng-template #emptyActivities>
+        <div class="empty-activity">
+          <ion-icon name="file-tray-outline"></ion-icon>
+          <span>Belum ada aktivitas terbaru</span>
+        </div>
+      </ng-template>
+    </section>
+  </main>
 </ion-content>
 
-<ion-footer class="footer-nav app-bottom-nav">
-  <div class="nav-wrapper">
-    <div class="nav-item active">
-      <ion-icon name="home-outline"></ion-icon>
-      <span>Beranda</span>
-    </div>
-    <div class="nav-item" (click)="goToInventory()">
-      <ion-icon name="layers-outline"></ion-icon>
-      <span>Inventori</span>
-    </div>
-    <div class="nav-item" (click)="goToHistory()">
-      <ion-icon name="time-outline"></ion-icon>
-      <span>Riwayat</span>
-    </div>
-    <div class="nav-item" (click)="goToProfile()">
-      <ion-icon name="person-outline"></ion-icon>
-      <span>Profil</span>
-    </div>
-  </div>
-</ion-footer>
+<app-bottom-nav active="dashboard"></app-bottom-nav>

@@ -23,6 +23,13 @@ interface LocationOption {
 export class GoodsOutPage {
   form = {
     selectedItem: '',
+    itemName: '',
+    itemCode: '',
+    barcode: '',
+    category: '',
+    unit: 'pcs',
+    minThreshold: '',
+    mediumThreshold: '',
     quantity: '',
     fromLocation: '',
     notes: '',
@@ -31,6 +38,10 @@ export class GoodsOutPage {
   inventoryItems: InventoryItem[] = [];
   locationsList: LocationItem[] = [];
   isSubmitting = false;
+  lookupMessage = '';
+  activeLookupSource: 'barcode' | 'code' | '' = '';
+  private lookupTimers: Partial<Record<'barcode' | 'code', number>> = {};
+  private lastLookupKeys: Partial<Record<'barcode' | 'code', string>> = {};
 
   constructor(
     private router: Router,
@@ -55,24 +66,56 @@ export class GoodsOutPage {
     this.router.navigate(['/home']);
   }
 
-  onSelectItemChange() {
-    this.form.quantity = '';
-    this.form.fromLocation = this.sourceLocationOptions[0]?.value || '';
-  }
-
-  get itemOptions(): SearchableSelectOption[] {
-    return this.inventoryItems.map(item => ({
-      value: item.id,
-      label: `${item.name} - ${item.sku} (${item.quantity} ${item.unit})`,
-      disabled: item.quantity <= 0,
-    }));
-  }
-
   get sourceSelectOptions(): SearchableSelectOption[] {
     return this.sourceLocationOptions.map(location => ({
       value: location.value,
-      label: `${location.label} - ${location.quantity} ${this.selectedItem?.unit || 'unit'}`,
+      label: location.quantity > 0
+        ? `${location.label} - ${location.quantity} ${this.selectedItem?.unit || 'unit'}`
+        : location.label,
     }));
+  }
+
+  get itemFieldsLocked() {
+    return Boolean(this.form.selectedItem);
+  }
+
+  get isCodeFieldLocked() {
+    return this.itemFieldsLocked && this.activeLookupSource !== 'code';
+  }
+
+  get isBarcodeFieldLocked() {
+    return this.itemFieldsLocked && this.activeLookupSource !== 'barcode';
+  }
+
+  get areItemDetailFieldsLocked() {
+    return this.itemFieldsLocked;
+  }
+
+  lookupExistingItemFromCode() {
+    this.lookupExistingItem(this.form.itemCode, 'code');
+  }
+
+  lookupExistingItemFromBarcode() {
+    this.lookupExistingItem(this.form.barcode, 'barcode');
+  }
+
+  scheduleExistingItemLookup(value: string, source: 'barcode' | 'code') {
+    const cleanValue = String(value || '').trim();
+
+    if (this.lookupTimers[source]) {
+      window.clearTimeout(this.lookupTimers[source]);
+      this.lookupTimers[source] = undefined;
+    }
+
+    if (!cleanValue) {
+      this.clearSelectedItemLock();
+      this.lookupMessage = '';
+      return;
+    }
+
+    this.lookupTimers[source] = window.setTimeout(() => {
+      this.lookupExistingItem(cleanValue, source);
+    }, 450);
   }
 
   submit() {
@@ -85,7 +128,7 @@ export class GoodsOutPage {
     const sourceLocation = this.sourceLocationOptions.find(location => location.value === this.form.fromLocation);
 
     if (!selectedItem || Number.isNaN(quantity) || quantity <= 0 || !this.form.fromLocation) {
-      window.alert('Pilih barang, lokasi asal, dan isi jumlah yang valid.');
+      window.alert('Cari barang dari kode/barcode, pilih lokasi asal, dan isi jumlah yang valid.');
       return;
     }
 
@@ -139,7 +182,7 @@ export class GoodsOutPage {
     const item = this.selectedItem;
 
     if (!item) {
-      return [];
+      return this.allLocationOptions(0);
     }
 
     const locations = this.getBalancedSourceLocations(item);
@@ -157,7 +200,12 @@ export class GoodsOutPage {
         };
       });
 
-    return Array.from(new Map(options.map(option => [option.label, option])).values());
+    const mergedOptions = [
+      ...options,
+      ...this.allLocationOptions(item.quantity).filter(option => !options.some(source => source.backendValue === option.backendValue)),
+    ];
+
+    return Array.from(new Map(mergedOptions.map(option => [option.label, option])).values());
   }
 
   private getBalancedSourceLocations(item: InventoryItem): InventoryLocation[] {
@@ -191,10 +239,125 @@ export class GoodsOutPage {
   private resetForm() {
     this.form = {
       selectedItem: '',
+      itemName: '',
+      itemCode: '',
+      barcode: '',
+      category: '',
+      unit: 'pcs',
+      minThreshold: '',
+      mediumThreshold: '',
       quantity: '',
       fromLocation: '',
       notes: '',
     };
+    this.lookupMessage = '';
+    this.activeLookupSource = '';
+    this.lastLookupKeys = {};
+  }
+
+  private lookupExistingItem(rawValue: string, source: 'barcode' | 'code') {
+    const value = rawValue.trim();
+
+    if (!value) {
+      return;
+    }
+
+    const lookupKey = this.normalizeLookupValue(value);
+    if (this.lastLookupKeys[source] === lookupKey && this.form.selectedItem) {
+      return;
+    }
+    this.lastLookupKeys[source] = lookupKey;
+
+    this.lookupMessage = `Mencari barang dari ${source === 'barcode' ? 'barcode' : 'kode barang'}...`;
+
+    const localItem = this.findLoadedItemByCodeOrBarcode(value);
+    if (localItem) {
+      this.fillFormFromItem(localItem, source);
+      this.lookupMessage = 'Barang ditemukan. Data otomatis terisi.';
+      return;
+    }
+
+    const lookup$ = source === 'barcode'
+      ? this.inventoryService.getItemByBarcode(value)
+      : this.inventoryService.getItemById(value);
+
+    lookup$.subscribe({
+      next: item => {
+        if (!item) {
+          this.clearSelectedItemLock();
+          this.lookupMessage = 'Barang belum terdaftar. Barang keluar hanya bisa untuk barang yang sudah ada.';
+          return;
+        }
+
+        this.inventoryItems = this.upsertLoadedInventoryItem(item);
+        this.fillFormFromItem(item, source);
+        this.lookupMessage = 'Barang ditemukan. Data otomatis terisi.';
+      },
+      error: () => {
+        this.clearSelectedItemLock();
+        this.lookupMessage = 'Barang belum terdeteksi dari server.';
+      },
+    });
+  }
+
+  private fillFormFromItem(item: InventoryItem, source: 'barcode' | 'code') {
+    this.form.selectedItem = item.id;
+    this.activeLookupSource = source;
+    this.form.itemName = item.name;
+    this.form.itemCode = item.sku;
+    this.form.barcode = source === 'barcode' ? this.form.barcode : (item.barcode || '');
+    this.form.category = item.category || '';
+    this.form.unit = item.unit;
+    this.form.minThreshold = String(item.minThreshold || 50);
+    this.form.mediumThreshold = String(item.mediumThreshold || 150);
+    this.form.fromLocation = this.sourceLocationOptions[0]?.value || this.resolveBackendLocationValue(item.location);
+    this.form.quantity = '';
+  }
+
+  private clearSelectedItemLock() {
+    this.form.selectedItem = '';
+    this.activeLookupSource = '';
+    this.lastLookupKeys = {};
+  }
+
+  private findLoadedItemByCodeOrBarcode(value: string) {
+    const normalizedValue = this.normalizeLookupValue(value);
+
+    return this.inventoryItems.find(item =>
+      this.normalizeLookupValue(item.sku) === normalizedValue ||
+      this.normalizeLookupValue(item.sku).replace(/^sku-/, '') === normalizedValue ||
+      (item.barcode && this.normalizeLookupValue(item.barcode) === normalizedValue) ||
+      this.normalizeLookupValue(item.id) === normalizedValue
+    );
+  }
+
+  private upsertLoadedInventoryItem(item: InventoryItem): InventoryItem[] {
+    const itemKeys = [item.id, item.sku, item.barcode]
+      .filter(Boolean)
+      .map(key => this.normalizeLookupValue(String(key)));
+
+    const withoutDuplicate = this.inventoryItems.filter(existing => {
+      const existingKeys = [existing.id, existing.sku, existing.barcode]
+        .filter(Boolean)
+        .map(key => this.normalizeLookupValue(String(key)));
+
+      return !existingKeys.some(key => itemKeys.includes(key));
+    });
+
+    return [item, ...withoutDuplicate];
+  }
+
+  private normalizeLookupValue(value: string) {
+    return String(value || '').trim().toLowerCase();
+  }
+
+  private allLocationOptions(quantity: number): LocationOption[] {
+    return this.locationsList.map(location => ({
+      value: String(location.id),
+      backendValue: String(location.id),
+      label: location.display_name || location.name,
+      quantity,
+    }));
   }
 
   private rememberUpdatedStock(

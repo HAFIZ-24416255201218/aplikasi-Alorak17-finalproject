@@ -24,7 +24,7 @@
     <form class="goods-form">
       <label class="field">
         <span>Nama Barang</span>
-        <input [(ngModel)]="form.itemName" name="itemName" type="text" placeholder="Ketik nama barang" />
+        <input [(ngModel)]="form.itemName" name="itemName" type="text" placeholder="Ketik nama barang" [disabled]="areItemDetailFieldsLocked" />
       </label>
 
       <label class="field">
@@ -35,11 +35,12 @@
             name="itemCode"
             type="text"
             placeholder="Ketik atau buat kode barang"
+            [disabled]="isCodeFieldLocked"
             (ngModelChange)="scheduleExistingItemLookup($event, 'code')"
             (change)="lookupExistingItemFromCode()"
             (blur)="lookupExistingItemFromCode()"
           />
-          <button class="scan-button" type="button" (click)="generateItemCode()" aria-label="Buat kode baru">
+          <button class="scan-button" type="button" (click)="generateItemCode()" aria-label="Buat kode baru" [disabled]="isCodeFieldLocked">
             <ion-icon name="refresh-outline"></ion-icon>
           </button>
         </div>
@@ -53,11 +54,12 @@
             name="barcode"
             type="text"
             placeholder="Ketik atau scan barcode"
+            [disabled]="isBarcodeFieldLocked"
             (ngModelChange)="scheduleExistingItemLookup($event, 'barcode')"
             (change)="lookupExistingItemFromBarcode()"
             (blur)="lookupExistingItemFromBarcode()"
           />
-          <button class="scan-button" type="button" (click)="openBarcodeScanner()" aria-label="Scan barcode dari kamera">
+          <button class="scan-button" type="button" (click)="openBarcodeScanner()" aria-label="Scan barcode dari kamera" [disabled]="isBarcodeFieldLocked">
             <ion-icon name="camera-outline"></ion-icon>
           </button>
         </div>
@@ -89,6 +91,7 @@
           [(ngModel)]="form.category"
           name="category"
           [options]="categorySelectOptions"
+          [disabled]="areItemDetailFieldsLocked"
           placeholder="Pilih kategori barang"
           searchPlaceholder="Cari kategori"
           emptyText="Kategori belum tersedia dari server"
@@ -97,18 +100,18 @@
 
       <label class="field">
         <span>Unit</span>
-        <input [(ngModel)]="form.unit" name="unit" type="text" />
+        <input [(ngModel)]="form.unit" name="unit" type="text" [disabled]="areItemDetailFieldsLocked" />
       </label>
 
       <div class="threshold-grid">
         <label class="field">
           <span>Batas Minimum Stok</span>
-          <input [(ngModel)]="form.minThreshold" name="minThreshold" type="number" min="0" placeholder="50" />
+          <input [(ngModel)]="form.minThreshold" name="minThreshold" type="number" min="0" placeholder="50" [disabled]="areItemDetailFieldsLocked" />
         </label>
 
         <label class="field">
           <span>Batas Stok Sedang</span>
-          <input [(ngModel)]="form.mediumThreshold" name="mediumThreshold" type="number" min="0" placeholder="150" />
+          <input [(ngModel)]="form.mediumThreshold" name="mediumThreshold" type="number" min="0" placeholder="150" [disabled]="areItemDetailFieldsLocked" />
         </label>
       </div>
 

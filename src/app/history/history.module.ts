@@ -5,6 +5,7 @@ import { IonicModule } from '@ionic/angular';
 
 import { HistoryPageRoutingModule } from './history-routing.module';
 import { HistoryPage } from './history.page';
+import { BottomNavModule } from '../shared/bottom-nav/bottom-nav.module';
 
 @NgModule({
   imports: [
@@ -12,6 +13,7 @@ import { HistoryPage } from './history.page';
     FormsModule,
     IonicModule,
     HistoryPageRoutingModule,
+    BottomNavModule,
   ],
   declarations: [HistoryPage],
 })

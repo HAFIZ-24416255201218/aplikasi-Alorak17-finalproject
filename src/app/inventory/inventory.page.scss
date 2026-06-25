@@ -474,41 +474,6 @@
   font-size: 18px;
 }
 
-.footer-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: #ffffff;
-  border-top: 1px solid #e8ecf3;
-  box-shadow: 0 -4px 14px rgba(28, 39, 60, 0.08);
-  z-index: 100;
-}
-
-.nav-wrapper {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  color: #a0a8b8;
-  font-size: 11px;
-  font-weight: 700;
-
-  ion-icon {
-    font-size: 21px;
-  }
-}
-
-.nav-item.active {
-  color: #2e8cf6;
-}
-
 @media (min-width: 768px) {
   .inventory-shell {
     padding: 20px 40px 40px;
@@ -557,9 +522,6 @@
     border-radius: 16px;
   }
 
-  .footer-nav {
-    display: none !important;
-  }
 }
 
 .barcode-scanner-overlay {
@@ -936,28 +898,6 @@
 }
 
 .category-tag {
-  background: #edf6ff;
-  color: var(--app-primary);
-}
-
-.footer-nav {
-  left: 12px;
-  right: 12px;
-  bottom: 10px;
-  border-radius: 22px 22px 18px 18px;
-  border: 1px solid rgba(231, 237, 245, 0.92);
-}
-
-.nav-wrapper {
-  padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
-}
-
-.nav-item {
-  min-height: 54px;
-  border-radius: 16px;
-}
-
-.nav-item.active {
   background: #edf6ff;
   color: var(--app-primary);
 }

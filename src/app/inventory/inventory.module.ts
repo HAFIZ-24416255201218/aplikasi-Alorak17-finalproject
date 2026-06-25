@@ -5,6 +5,7 @@ import { IonicModule } from '@ionic/angular';
 
 import { InventoryPageRoutingModule } from './inventory-routing.module';
 import { InventoryPage } from './inventory.page';
+import { BottomNavModule } from '../shared/bottom-nav/bottom-nav.module';
 
 @NgModule({
   imports: [
@@ -12,6 +13,7 @@ import { InventoryPage } from './inventory.page';
     FormsModule,
     IonicModule,
     InventoryPageRoutingModule,
+    BottomNavModule,
   ],
   declarations: [InventoryPage],
 })

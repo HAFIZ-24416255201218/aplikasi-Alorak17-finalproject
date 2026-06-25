@@ -40,25 +40,23 @@ export class ProfilePage {
 
     forkJoin({
       items: this.inventoryService.getItems(),
-      transactions: this.transactionService.getTransactions()
+      transactions: this.transactionService.getTransactionsForTab('all')
     }).subscribe(({ items, transactions }) => {
-      const todayKey = this.toDateKey(new Date());
-      const todayTransactions = transactions.filter(
-        t => this.toDateKey(new Date(t.createdAt)) === todayKey
-      );
+      const currentUser = this.authService.getCurrentUser();
+      const userTransactions = transactions.filter(transaction => this.isCurrentUserTransaction(transaction, currentUser));
 
-      const itemsIn = todayTransactions
+      const itemsIn = userTransactions
         .filter(t => t.type === 'in')
-        .reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
+        .reduce((sum, t) => sum + this.getTransactionQuantity(t), 0);
 
-      const itemsOut = todayTransactions
+      const itemsOut = userTransactions
         .filter(t => t.type === 'out')
-        .reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
+        .reduce((sum, t) => sum + this.getTransactionQuantity(t), 0);
 
       this.stats = [
-        { value: `${todayTransactions.length}`, label: 'Transaksi' },
-        { value: `${itemsIn}`, label: 'Barang Masuk' },
-        { value: `${itemsOut}`, label: 'Barang Keluar' },
+        { value: this.formatNumber(userTransactions.length), label: 'Transaksi' },
+        { value: this.formatNumber(itemsIn), label: 'Barang Masuk' },
+        { value: this.formatNumber(itemsOut), label: 'Barang Keluar' },
       ];
 
       this.totalSKUs = items.length;
@@ -86,11 +84,24 @@ export class ProfilePage {
     });
   }
 
-  private toDateKey(date: Date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+  private isCurrentUserTransaction(transaction: { operator: string; userId?: number }, currentUser: ReturnType<AuthService['getCurrentUser']>) {
+    if (!currentUser) {
+      return false;
+    }
+
+    if (currentUser.role === 'operator') {
+      return !transaction.userId || transaction.userId === currentUser.id || transaction.operator === currentUser.name;
+    }
+
+    return transaction.userId === currentUser.id || transaction.operator === currentUser.name;
+  }
+
+  private getTransactionQuantity(transaction: { amount: string }) {
+    return Math.abs(Number(String(transaction.amount).replace(/[^\d.-]/g, '')) || 0);
+  }
+
+  private formatNumber(value: number) {
+    return new Intl.NumberFormat('id-ID').format(value || 0);
   }
 
   private createInitials(name: string) {

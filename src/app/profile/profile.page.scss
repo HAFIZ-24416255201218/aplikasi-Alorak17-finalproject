@@ -335,8 +335,7 @@
 
   .profile-meta p,
   .metric-label,
-  .section-block h2,
-  .nav-item {
+  .section-block h2 {
     color: #9ca3af;
   }
 
@@ -354,8 +353,7 @@
     }
   }
 
-  .setting-row + .setting-row,
-  .footer-nav {
+  .setting-row + .setting-row {
     border-color: #253044;
   }
 
@@ -377,9 +375,6 @@
     }
   }
 
-  .footer-nav {
-    background: #111827;
-  }
 }
 
 .profile-content {
@@ -459,73 +454,6 @@
   box-shadow: none;
 }
 
-.footer-nav {
-  left: 12px;
-  right: 12px;
-  bottom: 10px;
-  border-radius: 22px 22px 18px 18px;
-  border: 1px solid rgba(231, 237, 245, 0.92);
-}
-
-.nav-wrapper {
-  padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
-}
-
-.nav-item {
-  min-height: 54px;
-  border-radius: 16px;
-}
-
-.nav-item.active {
-  background: #edf6ff;
-  color: var(--app-primary);
-}
-
-.footer-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: #ffffff;
-  border-top: 1px solid #f0f1f3;
-  box-shadow: 0 -4px 16px rgba(28, 39, 60, 0.08);
-  z-index: 100;
-}
-
-.nav-wrapper {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  color: #a0a8b8;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  ion-icon {
-    font-size: 21px;
-  }
-
-  &:active {
-    transform: scale(0.95);
-  }
-}
-
-.nav-item.active {
-  color: #2e8cf6;
-
-  ion-icon {
-    color: #2e8cf6;
-  }
-}
-
 @media (min-width: 768px) {
   .profile-shell {
     width: 100%;
@@ -552,9 +480,6 @@
     padding: 40px;
   }
 
-  .footer-nav {
-    display: none !important;
-  }
 }
 
 @media (max-width: 380px) {

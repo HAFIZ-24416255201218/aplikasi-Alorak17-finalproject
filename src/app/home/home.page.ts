@@ -19,20 +19,21 @@ export class HomePage implements OnDestroy {
   private notificationSub?: Subscription;
 
   statistics = [
-    { icon: 'cube-outline', value: '0', label: 'Total SKU', trend: '0 produk di inventory', color: '#2563eb', theme: 'primary' },
-    { icon: 'archive-outline', value: '0', label: 'Total Stock', trend: '0 unit tersimpan', color: '#16a34a', theme: 'success' },
-    { icon: 'log-in-outline', value: '0', label: 'Barang Masuk', trend: '0 unit transaksi masuk', color: '#22c55e', theme: 'success' },
-    { icon: 'log-out-outline', value: '0', label: 'Barang Keluar', trend: '0 unit transaksi keluar', color: '#f97316', theme: 'warning' },
-  ];
-
-  quickActions = [
-    { label: 'Barang Masuk', icon: 'arrow-down-outline', color: '#22c55e', action: 'goodsIn' },
-    { label: 'Barang Keluar', icon: 'arrow-up-outline', color: '#f97316', action: 'goodsOut' },
-    { label: 'Barang Berpindah', icon: 'swap-horizontal-outline', color: '#0066cc', action: 'mutations' },
+    { value: '0', label: 'TOTAL BARANG', theme: 'primary' },
+    { value: '0', label: 'STOK MASUK', theme: 'success' },
+    { value: '0', label: 'STOK KELUAR', theme: 'warning' },
+    { value: '0', label: 'SISA STOK', theme: 'light' },
   ];
 
   lowStockItems: Array<{ id: string; name: string; sku: string; current: number; total: number; percentage: number }> = [];
-  recentActivities: Array<{ icon: string; name: string; change: string; time: string; color: string; imageData?: string }> = [];
+  stockSummaryItems: Array<{ label: string; percent: number; color: string }> = [
+    { label: 'Elektronik', percent: 35, color: '#0874e8' },
+    { label: 'Kebutuhan Kantor', percent: 25, color: '#19bf78' },
+    { label: 'Bahan Baku', percent: 20, color: '#f7a614' },
+    { label: 'Lainnya', percent: 20, color: '#9c9f59' },
+  ];
+  pieGradient = this.buildPieGradient(this.stockSummaryItems);
+  recentActivities: Array<{ icon: string; typeLabel: string; name: string; change: string; time: string; color: string; imageData?: string }> = [];
 
   constructor(
     private router: Router,
@@ -70,25 +71,6 @@ export class HomePage implements OnDestroy {
     this.router.navigate(['/notifications'], { queryParams: { from: 'home' } });
   }
 
-  handleQuickAction(action: string) {
-    if (action === 'goodsIn') {
-      this.router.navigate(['/goods-in']);
-      return;
-    }
-
-    if (action === 'goodsOut') {
-      this.router.navigate(['/goods-out']);
-      return;
-    }
-
-    if (action === 'mutations') {
-      this.router.navigate(['/stock-mutation']);
-      return;
-    }
-
-    console.log('Action:', action);
-  }
-
   logout() {
     localStorage.removeItem('isLoggedIn');
     localStorage.setItem('hasLoggedOut', 'true');
@@ -111,67 +93,46 @@ export class HomePage implements OnDestroy {
     this.router.navigate(['/inventory-detail', id]);
   }
 
-  private toDateKey(date: Date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-
   private loadDashboardData() {
     forkJoin({
       items: this.inventoryService.getItems(),
-      transactions: this.transactionService.getTransactions()
+      transactions: this.transactionService.getTransactionsForTab('all')
     }).subscribe(({ items, transactions }) => {
-      const todayKey = this.toDateKey(new Date());
-      const todayTransactions = transactions.filter(
-        t => this.toDateKey(new Date(t.createdAt)) === todayKey
-      );
-
       const totalStock = items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
 
-      const totalInToday = todayTransactions
+      const totalIn = transactions
         .filter(t => t.type === 'in')
-        .reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
+        .reduce((sum, t) => sum + this.getTransactionQuantity(t), 0);
 
-      const totalOutToday = todayTransactions
+      const totalOut = transactions
         .filter(t => t.type === 'out')
-        .reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
+        .reduce((sum, t) => sum + this.getTransactionQuantity(t), 0);
 
       this.statistics = [
         {
-          icon: 'cube-outline',
-          value: `${items.length}`,
-          label: 'Total SKU',
-          trend: `${items.length} produk di inventory`,
-          color: '#2563eb',
+          value: this.formatNumber(items.length),
+          label: 'TOTAL BARANG',
           theme: 'primary',
         },
         {
-          icon: 'archive-outline',
-          value: `${totalStock}`,
-          label: 'Total Stock',
-          trend: `${totalStock} unit tersimpan`,
-          color: '#16a34a',
+          value: this.formatNumber(totalIn),
+          label: 'STOK MASUK',
           theme: 'success',
         },
         {
-          icon: 'log-in-outline',
-          value: `${totalInToday}`,
-          label: 'Barang Masuk',
-          trend: `${todayTransactions.filter(item => item.type === 'in').length} transaksi hari ini`,
-          color: '#22c55e',
-          theme: 'success',
-        },
-        {
-          icon: 'log-out-outline',
-          value: `${totalOutToday}`,
-          label: 'Barang Keluar',
-          trend: `${todayTransactions.filter(item => item.type === 'out').length} transaksi hari ini`,
-          color: '#f97316',
+          value: this.formatNumber(totalOut),
+          label: 'STOK KELUAR',
           theme: 'warning',
         },
+        {
+          value: this.formatNumber(Math.max(totalStock, 0)),
+          label: 'SISA STOK',
+          theme: 'light',
+        },
       ];
+
+      this.stockSummaryItems = this.buildStockSummary(items);
+      this.pieGradient = this.buildPieGradient(this.stockSummaryItems);
 
       this.lowStockItems = items
         .filter(item => item.quantity <= (item.mediumThreshold || 100))
@@ -191,17 +152,69 @@ export class HomePage implements OnDestroy {
 
       this.recentActivities = transactions.slice(0, 3).map(transaction => {
         const product = this.findTransactionProduct(transaction, items);
+        const isMove = transaction.type === 'move';
+        const isOut = transaction.type === 'out';
 
         return {
-          icon: transaction.type === 'move' ? 'swap-horizontal-outline' : transaction.type === 'out' ? 'arrow-up-outline' : 'arrow-down-outline',
+          icon: isMove ? 'swap-horizontal-outline' : isOut ? 'log-out-outline' : 'log-in-outline',
+          typeLabel: isMove ? 'Mutasi Barang' : isOut ? 'Stok Keluar' : 'Stok Masuk',
           name: transaction.name,
           change: transaction.amount,
           time: this.getRelativeTime(transaction.createdAt),
-          color: transaction.type === 'move' ? '#0066cc' : transaction.type === 'out' ? '#f59e0b' : '#22c55e',
+          color: isMove ? '#0874e8' : isOut ? '#f7a614' : '#19bf78',
           imageData: product?.imageData,
         };
       });
     });
+  }
+
+  private formatNumber(value: number) {
+    return new Intl.NumberFormat('id-ID').format(value || 0);
+  }
+
+  private getTransactionQuantity(transaction: TransactionItem) {
+    return Math.abs(Number(String(transaction.amount).replace(/[^\d.-]/g, '')) || 0);
+  }
+
+  private buildStockSummary(items: InventoryItem[]) {
+    const colors = ['#0874e8', '#19bf78', '#f7a614', '#9c9f59'];
+    const totals = items.reduce<Record<string, number>>((summary, item) => {
+      const category = item.category || 'Lainnya';
+      summary[category] = (summary[category] || 0) + (Number(item.quantity) || 0);
+      return summary;
+    }, {});
+
+    const totalStock = Object.values(totals).reduce((sum, value) => sum + value, 0);
+
+    if (!totalStock) {
+      return this.stockSummaryItems;
+    }
+
+    const topCategories = Object.entries(totals)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4);
+
+    return topCategories.map(([label, total], index) => ({
+      label,
+      percent: Math.round((total / totalStock) * 100),
+      color: colors[index] || colors[colors.length - 1],
+    }));
+  }
+
+  private buildPieGradient(items: Array<{ percent: number; color: string }>) {
+    let cursor = 0;
+    const segments = items.map(item => {
+      const next = cursor + item.percent;
+      const segment = `${item.color} ${cursor}% ${next}%`;
+      cursor = next;
+      return segment;
+    });
+
+    if (cursor < 100 && segments.length > 0) {
+      segments.push(`${items[items.length - 1].color} ${cursor}% 100%`);
+    }
+
+    return `conic-gradient(${segments.join(', ')})`;
   }
 
   private findTransactionProduct(transaction: TransactionItem, items: InventoryItem[]) {
@@ -218,15 +231,19 @@ export class HomePage implements OnDestroy {
     const diffMinutes = Math.max(1, Math.floor((now - created) / 60000));
 
     if (diffMinutes < 60) {
-      return `${diffMinutes} minutes ago`;
+      return `${diffMinutes} menit`;
     }
 
     const diffHours = Math.floor(diffMinutes / 60);
     if (diffHours < 24) {
-      return `${diffHours} hours ago`;
+      return `${diffHours} jam`;
     }
 
     const diffDays = Math.floor(diffHours / 24);
-    return `${diffDays} days ago`;
+    if (diffDays === 1) {
+      return 'Kemarin';
+    }
+
+    return `${diffDays} hari`;
   }
 }

@@ -1,0 +1,38 @@
+<ion-footer class="modern-bottom-nav" [class.quick-open]="isQuickMenuOpen">
+  <div class="quick-menu" *ngIf="isQuickMenuOpen" (click)="$event.stopPropagation()">
+    <button class="quick-branch branch-in" type="button" (click)="goToGoodsIn()" aria-label="Barang masuk">
+      <ion-icon name="log-in-outline"></ion-icon>
+      <span>Barang Masuk</span>
+    </button>
+    <button class="quick-branch branch-out" type="button" (click)="goToGoodsOut()" aria-label="Barang keluar">
+      <ion-icon name="log-out-outline"></ion-icon>
+      <span>Barang Keluar</span>
+    </button>
+    <button class="quick-branch branch-move" type="button" (click)="goToStockMutation()" aria-label="Barang berpindah">
+      <ion-icon name="swap-horizontal-outline"></ion-icon>
+      <span>Barang Berpindah</span>
+    </button>
+  </div>
+
+  <div class="modern-nav-grid">
+    <button class="modern-nav-item" type="button" [class.active]="active === 'dashboard'" (click)="goToDashboard()">
+      <ion-icon name="home-outline"></ion-icon>
+      <span>Dashboard</span>
+    </button>
+    <button class="modern-nav-item" type="button" [class.active]="active === 'inventory'" (click)="goToInventory()">
+      <ion-icon name="cube-outline"></ion-icon>
+      <span>Barang</span>
+    </button>
+    <button class="modern-nav-fab" type="button" (click)="toggleQuickMenu($event)" [attr.aria-expanded]="isQuickMenuOpen" aria-label="Buka menu transaksi cepat">
+      <ion-icon name="add-outline"></ion-icon>
+    </button>
+    <button class="modern-nav-item" type="button" [class.active]="active === 'history'" (click)="goToHistory()">
+      <ion-icon name="receipt-outline"></ion-icon>
+      <span>Transaksi</span>
+    </button>
+    <button class="modern-nav-item" type="button" [class.active]="active === 'profile'" (click)="goToProfile()">
+      <ion-icon name="person-outline"></ion-icon>
+      <span>Profil</span>
+    </button>
+  </div>
+</ion-footer>

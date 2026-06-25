@@ -15,6 +15,7 @@ export interface TransactionItem {
   name: string;
   productId?: string;
   sku?: string;
+  userId?: number;
   time: string;
   operator: string;
   route: string;
@@ -226,6 +227,7 @@ export class TransactionService {
       name: history.item?.name || 'Item Terhapus',
       productId: history.item_id.toString(),
       sku: `SKU-${history.item_id}`,
+      userId: transaction?.user?.id,
       time: dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       operator: transaction?.user?.name || 'System',
       route,
@@ -260,6 +262,7 @@ export class TransactionService {
       name: t.item?.name || 'Item Terhapus',
       productId: t.item_id.toString(),
       sku: t.item_id ? `SKU-${t.item_id}` : '',
+      userId: t.user_id,
       time: dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       operator: t.user?.name || 'System',
       route: route,
