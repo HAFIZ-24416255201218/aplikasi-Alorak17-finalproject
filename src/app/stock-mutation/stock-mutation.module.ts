@@ -5,6 +5,7 @@ import { IonicModule } from '@ionic/angular';
 
 import { StockMutationPageRoutingModule } from './stock-mutation-routing.module';
 import { StockMutationPage } from './stock-mutation.page';
+import { SearchableSelectModule } from '../shared/searchable-select/searchable-select.module';
 
 @NgModule({
   imports: [
@@ -12,6 +13,7 @@ import { StockMutationPage } from './stock-mutation.page';
     FormsModule,
     IonicModule,
     StockMutationPageRoutingModule,
+    SearchableSelectModule,
   ],
   declarations: [StockMutationPage],
 })

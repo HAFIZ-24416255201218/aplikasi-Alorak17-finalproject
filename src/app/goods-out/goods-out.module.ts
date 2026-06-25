@@ -5,6 +5,7 @@ import { IonicModule } from '@ionic/angular';
 
 import { GoodsOutPageRoutingModule } from './goods-out-routing.module';
 import { GoodsOutPage } from './goods-out.page';
+import { SearchableSelectModule } from '../shared/searchable-select/searchable-select.module';
 
 @NgModule({
   imports: [
@@ -12,6 +13,7 @@ import { GoodsOutPage } from './goods-out.page';
     FormsModule,
     IonicModule,
     GoodsOutPageRoutingModule,
+    SearchableSelectModule,
   ],
   declarations: [GoodsOutPage],
 })

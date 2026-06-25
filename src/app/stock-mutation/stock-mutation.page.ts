@@ -5,6 +5,7 @@ import { InventoryItem, InventoryLocation, InventoryService } from '../inventory
 import { TransactionService } from '../transactions/transaction.service';
 import { LocationService, LocationItem } from '../services/location.service';
 import { NotificationService } from '../services/notification.service';
+import { SearchableSelectOption } from '../shared/searchable-select/searchable-select.component';
 
 interface LocationOption {
   value: string;
@@ -72,6 +73,28 @@ export class StockMutationPage {
     this.form.fromLocation = this.sourceLocationOptions[0]?.value || '';
     this.form.toLocation = '';
     this.form.quantity = '';
+  }
+
+  get itemOptions(): SearchableSelectOption[] {
+    return this.inventoryItems.map(item => ({
+      value: item.id,
+      label: `${item.name} - ${item.sku} (${item.quantity} ${item.unit})`,
+      disabled: item.quantity <= 0,
+    }));
+  }
+
+  get sourceSelectOptions(): SearchableSelectOption[] {
+    return this.sourceLocationOptions.map(location => ({
+      value: location.value,
+      label: `${location.label} - ${location.quantity} ${this.selectedItem?.unit || 'unit'}`,
+    }));
+  }
+
+  get destinationSelectOptions(): SearchableSelectOption[] {
+    return this.destinationLocationOptions.map(location => ({
+      value: location.value,
+      label: location.label,
+    }));
   }
 
   close() {

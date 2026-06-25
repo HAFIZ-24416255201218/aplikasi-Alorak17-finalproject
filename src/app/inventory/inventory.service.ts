@@ -198,10 +198,10 @@ export class InventoryService {
 
   private getItemDetailById(rolePrefix: string, cleanId: string): Observable<InventoryItem | undefined> {
     return this.http.get<LaravelItem>(`${this.apiUrl}/${rolePrefix}/items/${cleanId}`).pipe(
-      map(item => this.mapToInventoryItem(item)),
+      map(item => this.mergeItemWithRecentMeta(this.mapToInventoryItem(item), this.getRecentItems())),
       catchError(() =>
         this.http.get<LaravelItem>(`${this.apiUrl}/items/${cleanId}`).pipe(
-          map(item => this.mapToInventoryItem(item)),
+          map(item => this.mergeItemWithRecentMeta(this.mapToInventoryItem(item), this.getRecentItems())),
           catchError(() => of(undefined))
         )
       )
@@ -279,6 +279,7 @@ export class InventoryService {
           mediumThreshold,
           updatedAt: response.updated_at || new Date().toISOString(),
         });
+        this.invalidateCache();
 
         return response;
       })
@@ -1054,6 +1055,9 @@ export class InventoryService {
       ...item,
       barcode: item.barcode || recentItem.barcode,
       notes: item.notes || recentItem.notes,
+      minThreshold: recentItem.minThreshold ?? item.minThreshold,
+      mediumThreshold: recentItem.mediumThreshold ?? item.mediumThreshold,
+      updatedAt: this.getLatestDate(item.updatedAt, recentItem.updatedAt),
     };
   }
 

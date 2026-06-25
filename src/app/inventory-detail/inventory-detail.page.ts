@@ -25,6 +25,8 @@ export class InventoryDetailPage implements OnInit, OnDestroy {
   item?: InventoryItem;
   transactions: TransactionLine[] = [];
   private destroy$ = new Subject<void>();
+  private lastLoadedItemId = '';
+  private lastLoadedAt = 0;
 
   constructor(
     private route: ActivatedRoute,
@@ -97,26 +99,22 @@ export class InventoryDetailPage implements OnInit, OnDestroy {
     this.route.paramMap
       .pipe(
         takeUntil(this.destroy$),
-        switchMap(params => {
-          const itemId = params.get('sku') || params.get('id') || '';
-
-          if (!itemId) {
-            return of(undefined);
-          }
-
-          return this.inventoryService.getItemById(itemId);
-        })
+        switchMap(params => this.loadItem(params.get('sku') || params.get('id') || ''))
       )
-      .subscribe(item => {
-        if (!item) {
-          window.alert('Barang tidak ditemukan.');
-          this.router.navigate(['/inventory']);
-          return;
-        }
+      .subscribe(item => this.applyLoadedItem(item));
+  }
 
-        this.item = item;
-        this.loadTransactions(item);
-      });
+  ionViewWillEnter() {
+    const itemId = this.route.snapshot.paramMap.get('sku') || this.route.snapshot.paramMap.get('id') || '';
+    const wasJustLoaded = itemId === this.lastLoadedItemId && Date.now() - this.lastLoadedAt < 500;
+
+    if (!itemId || wasJustLoaded) {
+      return;
+    }
+
+    this.loadItem(itemId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(item => this.applyLoadedItem(item));
   }
 
   ngOnDestroy() {
@@ -184,6 +182,28 @@ export class InventoryDetailPage implements OnInit, OnDestroy {
       .subscribe(transactions => {
         this.transactions = transactions.map(transaction => this.toTransactionLine(transaction));
       });
+  }
+
+  private loadItem(itemId: string) {
+    if (!itemId) {
+      return of(undefined);
+    }
+
+    this.lastLoadedItemId = itemId;
+    this.lastLoadedAt = Date.now();
+
+    return this.inventoryService.getItemById(itemId);
+  }
+
+  private applyLoadedItem(item: InventoryItem | undefined) {
+    if (!item) {
+      window.alert('Barang tidak ditemukan.');
+      this.router.navigate(['/inventory']);
+      return;
+    }
+
+    this.item = item;
+    this.loadTransactions(item);
   }
 
   private toTransactionLine(transaction: TransactionItem): TransactionLine {

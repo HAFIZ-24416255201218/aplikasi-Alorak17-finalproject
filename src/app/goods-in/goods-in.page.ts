@@ -6,6 +6,7 @@ import { InventoryItem, InventoryLocation, InventoryService, LaravelCategory } f
 import { TransactionService } from '../transactions/transaction.service';
 import { LocationService, LocationItem } from '../services/location.service';
 import { NotificationService } from '../services/notification.service';
+import { SearchableSelectOption } from '../shared/searchable-select/searchable-select.component';
 
 const BARCODE_HINTS = new Map<DecodeHintType, unknown>([
   [
@@ -121,6 +122,20 @@ export class GoodsInPage {
 
       this.fillFormFromItem(selectedItem);
     });
+  }
+
+  get locationOptions(): SearchableSelectOption[] {
+    return this.locationsList.map(location => ({
+      value: String(location.id),
+      label: location.display_name || location.name,
+    }));
+  }
+
+  get categorySelectOptions(): SearchableSelectOption[] {
+    return this.categoryOptions.map(category => ({
+      value: category.name,
+      label: category.name,
+    }));
   }
 
   get destLocationOptions() {

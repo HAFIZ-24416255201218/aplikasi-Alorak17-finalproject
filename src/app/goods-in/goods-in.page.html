@@ -67,13 +67,14 @@
       <div class="primary-fields" aria-label="Input utama barang masuk">
         <label class="field feature-field">
           <span>Lokasi Tujuan</span>
-          <div class="select-wrap">
-            <select [(ngModel)]="form.destLocation" name="destLocation">
-              <option value="" disabled>Pilih lokasi tujuan</option>
-              <option *ngFor="let location of locationsList" [value]="location.id">{{ location.display_name || location.name }}</option>
-            </select>
-            <ion-icon name="chevron-down-outline"></ion-icon>
-          </div>
+          <app-searchable-select
+            [(ngModel)]="form.destLocation"
+            name="destLocation"
+            [options]="locationOptions"
+            placeholder="Pilih lokasi tujuan"
+            searchPlaceholder="Cari lokasi"
+            emptyText="Lokasi tidak ditemukan"
+          ></app-searchable-select>
         </label>
 
         <label class="field feature-field">
@@ -84,14 +85,14 @@
 
       <label class="field">
         <span>Kategori</span>
-        <div class="select-wrap">
-          <select [(ngModel)]="form.category" name="category">
-            <option value="" disabled>Pilih kategori barang</option>
-            <option *ngFor="let category of categoryOptions" [value]="category.name">{{ category.name }}</option>
-            <option *ngIf="!categoryOptions.length" value="" disabled>Kategori belum tersedia dari server</option>
-          </select>
-          <ion-icon name="chevron-down-outline"></ion-icon>
-        </div>
+        <app-searchable-select
+          [(ngModel)]="form.category"
+          name="category"
+          [options]="categorySelectOptions"
+          placeholder="Pilih kategori barang"
+          searchPlaceholder="Cari kategori"
+          emptyText="Kategori belum tersedia dari server"
+        ></app-searchable-select>
       </label>
 
       <label class="field">

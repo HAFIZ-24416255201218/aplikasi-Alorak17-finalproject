@@ -1,0 +1,34 @@
+<div class="searchable-select" [class.open]="isOpen" [class.disabled]="disabled">
+  <button class="select-trigger" type="button" (click)="toggle()" [disabled]="disabled">
+    <span [class.placeholder]="!selectedLabel">{{ selectedLabel || placeholder }}</span>
+    <ion-icon name="chevron-down-outline"></ion-icon>
+  </button>
+
+  <div class="select-panel" *ngIf="isOpen">
+    <label class="select-search">
+      <ion-icon name="search-outline"></ion-icon>
+      <input
+        [(ngModel)]="searchTerm"
+        type="text"
+        [placeholder]="searchPlaceholder"
+        autocomplete="off"
+      />
+    </label>
+
+    <div class="select-options">
+      <button
+        *ngFor="let option of filteredOptions; trackBy: trackByValue"
+        type="button"
+        class="select-option"
+        [class.active]="option.value === value"
+        [disabled]="option.disabled"
+        (click)="choose(option)"
+      >
+        <span>{{ option.label }}</span>
+        <ion-icon *ngIf="option.value === value" name="checkmark-outline"></ion-icon>
+      </button>
+
+      <div class="select-empty" *ngIf="!filteredOptions.length">{{ emptyText }}</div>
+    </div>
+  </div>
+</div>

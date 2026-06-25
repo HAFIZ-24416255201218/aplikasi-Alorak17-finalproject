@@ -16,15 +16,15 @@
     <form class="goods-form">
       <label class="field">
         <span>Pilih Barang</span>
-        <div class="select-wrap">
-          <select [(ngModel)]="form.selectedItem" name="selectedItem" (change)="onSelectItemChange()">
-            <option value="" selected disabled>Pilih barang...</option>
-            <option *ngFor="let item of inventoryItems" [value]="item.id" [disabled]="item.quantity <= 0">
-              {{ item.name }} - {{ item.sku }} ({{ item.quantity }} {{ item.unit }})
-            </option>
-          </select>
-          <ion-icon name="chevron-down-outline"></ion-icon>
-        </div>
+        <app-searchable-select
+          [(ngModel)]="form.selectedItem"
+          name="selectedItem"
+          [options]="itemOptions"
+          placeholder="Pilih barang..."
+          searchPlaceholder="Cari barang"
+          emptyText="Barang tidak ditemukan"
+          (selectionChange)="onSelectItemChange()"
+        ></app-searchable-select>
       </label>
 
       <div class="mutation-preview" *ngIf="selectedItem as item">
@@ -46,26 +46,26 @@
 
         <label class="field feature-field">
           <span>Dari Lokasi</span>
-          <div class="select-wrap">
-            <select [(ngModel)]="form.fromLocation" name="fromLocation">
-              <option value="" selected disabled>Pilih lokasi asal...</option>
-              <option *ngFor="let location of sourceLocationOptions" [value]="location.value">
-                {{ location.label }} - {{ location.quantity }} {{ selectedItem?.unit || 'unit' }}
-              </option>
-            </select>
-            <ion-icon name="chevron-down-outline"></ion-icon>
-          </div>
+          <app-searchable-select
+            [(ngModel)]="form.fromLocation"
+            name="fromLocation"
+            [options]="sourceSelectOptions"
+            placeholder="Pilih lokasi asal..."
+            searchPlaceholder="Cari lokasi"
+            emptyText="Lokasi tidak ditemukan"
+          ></app-searchable-select>
         </label>
 
         <label class="field feature-field">
           <span>Ke Lokasi</span>
-          <div class="select-wrap">
-            <select [(ngModel)]="form.toLocation" name="toLocation">
-              <option value="" selected disabled>Pilih lokasi tujuan...</option>
-              <option *ngFor="let location of destinationLocationOptions" [value]="location.value">{{ location.label }}</option>
-            </select>
-            <ion-icon name="chevron-down-outline"></ion-icon>
-          </div>
+          <app-searchable-select
+            [(ngModel)]="form.toLocation"
+            name="toLocation"
+            [options]="destinationSelectOptions"
+            placeholder="Pilih lokasi tujuan..."
+            searchPlaceholder="Cari lokasi"
+            emptyText="Lokasi tidak ditemukan"
+          ></app-searchable-select>
         </label>
       </div>
 
