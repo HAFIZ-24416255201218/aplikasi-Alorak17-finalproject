@@ -21,6 +21,9 @@ export class HistoryPage {
   searchQuery: string = '';
   productIdFilter = '';
   productNameFilter = '';
+  productSkuFilter = '';
+  productBarcodeFilter = '';
+  isScannerOpen = false;
 
   stats = {
     total: 0,
@@ -33,12 +36,14 @@ export class HistoryPage {
     private route: ActivatedRoute,
     private router: Router,
     private transactionService: TransactionService,
-  ) {}
+  ) { }
 
   ionViewWillEnter() {
     const queryParams = this.route.snapshot.queryParamMap;
     this.productIdFilter = queryParams.get('productId') || '';
     this.productNameFilter = queryParams.get('productName') || '';
+    this.productSkuFilter = queryParams.get('productSku') || '';
+    this.productBarcodeFilter = queryParams.get('productBarcode') || '';
     this.loadTransactions();
   }
 
@@ -56,9 +61,7 @@ export class HistoryPage {
   }
 
   updateStats() {
-    const transactions = this.productIdFilter
-      ? this.transactions.filter(transaction => transaction.productId === this.productIdFilter)
-      : this.transactions;
+    const transactions = this.getProductFilteredTransactions(this.transactions);
 
     this.stats.total = transactions.length;
     this.stats.in = this.sumTransactions(transactions.filter(transaction => transaction.type === 'in'));
@@ -69,21 +72,22 @@ export class HistoryPage {
   filterTransactions() {
     let filtered = [...this.transactions];
 
-    if (this.productIdFilter) {
-      filtered = filtered.filter(t => t.productId === this.productIdFilter);
-    }
+    filtered = this.getProductFilteredTransactions(filtered);
 
     if (this.activeTab !== 'all') {
       filtered = filtered.filter(t => t.type === this.activeTab);
     }
 
     if (this.searchQuery.trim()) {
-      const query = this.searchQuery.toLowerCase();
+      const query = this.normalizeSearchValue(this.searchQuery);
       filtered = filtered.filter(t =>
-        t.name.toLowerCase().includes(query) ||
-        (t.sku || '').toLowerCase().includes(query) ||
-        t.operator.toLowerCase().includes(query) ||
-        t.route.toLowerCase().includes(query)
+        this.normalizeSearchValue(t.name).includes(query) ||
+        this.normalizeSearchValue(t.productId || '').includes(query) ||
+        this.normalizeSearchValue(t.sku || '').includes(query) ||
+        this.normalizeSearchValue(t.sku || '').replace(/^sku-/, '').includes(query) ||
+        this.normalizeSearchValue(t.barcode || '').includes(query) ||
+        this.normalizeSearchValue(t.operator).includes(query) ||
+        this.normalizeSearchValue(t.route).includes(query)
       );
     }
 
@@ -98,6 +102,32 @@ export class HistoryPage {
 
   clearSearch() {
     this.searchQuery = '';
+    this.filterTransactions();
+  }
+
+  openBarcodeScanner() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      window.alert('Perangkat ini belum mendukung akses kamera.');
+      return;
+    }
+
+    this.isScannerOpen = true;
+  }
+
+  closeBarcodeScanner() {
+    this.isScannerOpen = false;
+  }
+
+  applyScannedBarcode(rawBarcode: string) {
+    const barcode = rawBarcode.trim();
+
+    if (!barcode) {
+      window.alert('Barcode tidak terbaca. Coba scan ulang.');
+      return;
+    }
+
+    this.searchQuery = barcode;
+    this.closeBarcodeScanner();
     this.filterTransactions();
   }
 
@@ -146,6 +176,34 @@ export class HistoryPage {
       label: this.getGroupLabel(key),
       transactions: items,
     }));
+  }
+
+  private getProductFilteredTransactions(transactions: TransactionItem[]) {
+    if (!this.productIdFilter && !this.productSkuFilter && !this.productBarcodeFilter) {
+      return transactions;
+    }
+
+    const productId = this.normalizeSearchValue(this.productIdFilter);
+    const productSku = this.normalizeSearchValue(this.productSkuFilter);
+    const productSkuNoPrefix = productSku.replace(/^sku-/, '');
+    const productBarcode = this.normalizeSearchValue(this.productBarcodeFilter);
+
+    return transactions.filter(transaction => {
+      const transactionId = this.normalizeSearchValue(transaction.productId || '');
+      const transactionSku = this.normalizeSearchValue(transaction.sku || '');
+      const transactionSkuNoPrefix = transactionSku.replace(/^sku-/, '');
+      const transactionBarcode = this.normalizeSearchValue(transaction.barcode || '');
+
+      return Boolean(
+        (productId && transactionId === productId) ||
+        (productSku && (transactionSku === productSku || transactionSkuNoPrefix === productSkuNoPrefix)) ||
+        (productBarcode && transactionBarcode === productBarcode)
+      );
+    });
+  }
+
+  private normalizeSearchValue(value: string) {
+    return String(value || '').trim().toLowerCase();
   }
 
   private sumTransactions(transactions: TransactionItem[]) {

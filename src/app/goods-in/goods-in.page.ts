@@ -1,33 +1,11 @@
-import { Component, ElementRef, NgZone, ViewChild } from '@angular/core';
+import { Component } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { BarcodeFormat, BrowserMultiFormatReader, DecodeHintType, NotFoundException } from '@zxing/library';
 import { InventoryItem, InventoryLocation, InventoryService, LaravelCategory } from '../inventory/inventory.service';
 import { TransactionService } from '../transactions/transaction.service';
 import { LocationService, LocationItem } from '../services/location.service';
 import { NotificationService } from '../services/notification.service';
 import { SearchableSelectOption } from '../shared/searchable-select/searchable-select.component';
-
-const BARCODE_HINTS = new Map<DecodeHintType, unknown>([
-  [
-    DecodeHintType.POSSIBLE_FORMATS,
-    [
-      BarcodeFormat.CODE_128,
-      BarcodeFormat.CODE_39,
-      BarcodeFormat.CODE_93,
-      BarcodeFormat.EAN_13,
-      BarcodeFormat.EAN_8,
-      BarcodeFormat.UPC_A,
-      BarcodeFormat.UPC_E,
-      BarcodeFormat.ITF,
-      BarcodeFormat.CODABAR,
-      BarcodeFormat.QR_CODE,
-    ],
-  ],
-  [DecodeHintType.TRY_HARDER, true],
-]);
-
-const BARCODE_FORMATS = ['code_128', 'code_39', 'code_93', 'ean_13', 'ean_8', 'itf', 'qr_code', 'upc_a', 'upc_e', 'codabar'];
 
 @Component({
   selector: 'app-goods-in',
@@ -36,8 +14,6 @@ const BARCODE_FORMATS = ['code_128', 'code_39', 'code_93', 'ean_13', 'ean_8', 'i
   standalone: false,
 })
 export class GoodsInPage {
-  @ViewChild('scannerVideo') scannerVideo?: ElementRef<HTMLVideoElement>;
-
   form = {
     selectedItem: '',
     itemName: '',
@@ -68,14 +44,10 @@ export class GoodsInPage {
 
   isScannerOpen = false;
   isSubmitting = false;
-  scanMessage = 'Arahkan kamera ke barcode produk.';
   barcodeLookupMessage = '';
   inventoryItems: InventoryItem[] = [];
   categoryOptions: LaravelCategory[] = [];
   locationsList: LocationItem[] = [];
-  private barcodeStream?: MediaStream;
-  private codeReader = new BrowserMultiFormatReader(BARCODE_HINTS, 100);
-  private nativeScanTimer?: number;
   private lookupTimers: Partial<Record<'barcode' | 'code', number>> = {};
   private lastLookupKeys: Partial<Record<'barcode' | 'code', string>> = {};
   activeLookupSource: 'barcode' | 'code' | '' = '';
@@ -85,13 +57,12 @@ export class GoodsInPage {
     private inventoryService: InventoryService,
     private transactionService: TransactionService,
     private locationService: LocationService,
-    private ngZone: NgZone,
     private notificationService: NotificationService,
   ) {}
 
   ionViewWillEnter() {
     this.isSubmitting = false;
-    this.stopScanner();
+    this.closeBarcodeScanner();
     this.resetForm();
     this.inventoryService.getItems().subscribe(items => {
       this.inventoryItems = items;
@@ -201,183 +172,21 @@ export class GoodsInPage {
     }, 450);
   }
 
-  async openBarcodeScanner() {
+  openBarcodeScanner() {
+    if (this.isBarcodeFieldLocked) {
+      return;
+    }
+
     if (!navigator.mediaDevices?.getUserMedia) {
       window.alert('Perangkat ini belum mendukung akses kamera.');
       return;
     }
 
     this.isScannerOpen = true;
-    this.scanMessage = 'Membuka kamera...';
-
-    try {
-      const video = await this.waitForScannerVideo();
-      this.barcodeStream = await navigator.mediaDevices.getUserMedia(this.getScannerConstraints());
-      await this.optimizeCameraTrack(this.barcodeStream);
-
-      video.srcObject = this.barcodeStream;
-      await video.play();
-
-      this.scanMessage = 'Scanner siap. Dekatkan barcode kecil sampai memenuhi kotak, lalu tahan sebentar.';
-      await this.startDetectingBarcode(video, this.barcodeStream);
-    } catch (error) {
-      console.error('Kesalahan membuka scanner barcode:', error);
-      this.scanMessage = 'Kamera tidak bisa dibuka.';
-      this.stopScanner();
-      window.alert('Izin kamera ditolak atau kamera tidak tersedia.');
-    }
   }
 
-  stopScanner() {
-    if (this.nativeScanTimer) {
-      window.clearInterval(this.nativeScanTimer);
-      this.nativeScanTimer = undefined;
-    }
-
+  closeBarcodeScanner() {
     this.isScannerOpen = false;
-    this.codeReader.reset();
-    this.barcodeStream?.getTracks().forEach(track => track.stop());
-    this.barcodeStream = undefined;
-  }
-
-  private async startDetectingBarcode(video: HTMLVideoElement, stream: MediaStream) {
-    if (this.startNativeBarcodeDetector(video, stream)) {
-      return;
-    }
-
-    this.scanMessage = 'Arahkan kamera ke barcode. Untuk barcode kecil, dekatkan perlahan sampai fokus.';
-    await this.startZxingScanner(stream, video);
-  }
-
-  private async startZxingScanner(stream: MediaStream, video: HTMLVideoElement) {
-    await this.codeReader.decodeFromStream(stream, video, (result, error) => {
-      if (!this.isScannerOpen) {
-        return;
-      }
-
-      const value = result?.getText();
-      if (value) {
-        this.ngZone.run(() => {
-          this.applyScannedBarcode(value);
-          this.stopScanner();
-        });
-        return;
-      }
-
-      if (error && !(error instanceof NotFoundException)) {
-        this.scanMessage = 'Belum terbaca. Jaga barcode tetap rata, terang, dan masuk penuh di kotak.';
-      }
-    }).catch(error => {
-      console.error('Kesalahan menjalankan scanner barcode:', error);
-      this.scanMessage = 'Kamera tidak bisa memulai scanner.';
-      this.stopScanner();
-      window.alert('Scanner barcode tidak bisa dijalankan.');
-    });
-  }
-
-  private startNativeBarcodeDetector(video: HTMLVideoElement, stream: MediaStream) {
-    const BarcodeDetectorCtor = (window as Window & {
-      BarcodeDetector?: new (options?: { formats?: string[] }) => {
-        detect: (source: ImageBitmapSource) => Promise<Array<{ rawValue?: string }>>;
-      };
-    }).BarcodeDetector;
-
-    if (!BarcodeDetectorCtor) {
-      return false;
-    }
-
-    const detector = new BarcodeDetectorCtor({
-      formats: BARCODE_FORMATS,
-    });
-
-    this.scanMessage = 'Scanner siap. Dekatkan barcode kecil sampai garisnya terlihat tajam.';
-
-    this.nativeScanTimer = window.setInterval(async () => {
-      if (!this.isScannerOpen || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
-        return;
-      }
-
-      try {
-        const barcodes = await detector.detect(video);
-        const barcode = barcodes[0]?.rawValue?.trim();
-
-        if (barcode) {
-          this.ngZone.run(() => {
-            this.applyScannedBarcode(barcode);
-            this.stopScanner();
-          });
-        }
-      } catch {
-        window.clearInterval(this.nativeScanTimer);
-        this.nativeScanTimer = undefined;
-        this.ngZone.run(() => {
-          this.scanMessage = 'Scanner bawaan tidak tersedia. Mencoba mode cadangan...';
-          this.startZxingScanner(stream, video);
-        });
-      }
-    }, 120);
-
-    return true;
-  }
-
-  private async waitForScannerVideo(): Promise<HTMLVideoElement> {
-    for (let attempt = 0; attempt < 10; attempt += 1) {
-      const video = this.scannerVideo?.nativeElement;
-
-      if (video) {
-        return video;
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 50));
-    }
-
-    throw new Error('Elemen video scanner belum siap.');
-  }
-
-  private getScannerConstraints(): MediaStreamConstraints {
-    return {
-      video: {
-        facingMode: { ideal: 'environment' },
-        width: { ideal: 1920 },
-        height: { ideal: 1080 },
-        frameRate: { ideal: 30, min: 15 },
-      },
-      audio: false,
-    };
-  }
-
-  private async optimizeCameraTrack(stream: MediaStream) {
-    const track = stream.getVideoTracks()[0];
-
-    if (!track?.getCapabilities || !track.applyConstraints) {
-      return;
-    }
-
-    const capabilities = track.getCapabilities() as MediaTrackCapabilities & {
-      focusMode?: string[];
-      zoom?: { min?: number; max?: number; step?: number };
-      torch?: boolean;
-    };
-    const advanced: Array<Record<string, unknown>> = [];
-
-    if (capabilities.focusMode?.includes('continuous')) {
-      advanced.push({ focusMode: 'continuous' });
-    }
-
-    if (capabilities.zoom?.max && capabilities.zoom.max > 1) {
-      const zoom = Math.min(capabilities.zoom.max, Math.max(capabilities.zoom.min || 1, 1.5));
-      advanced.push({ zoom });
-    }
-
-    if (!advanced.length) {
-      return;
-    }
-
-    try {
-      await track.applyConstraints({ advanced } as MediaTrackConstraints);
-    } catch (error) {
-      console.warn('Optimasi kamera barcode tidak didukung perangkat ini:', error);
-    }
   }
 
 
@@ -516,7 +325,7 @@ export class GoodsInPage {
     return `GIN-${datePart}-${randomPart}`;
   }
 
-  private applyScannedBarcode(rawBarcode: string) {
+  applyScannedBarcode(rawBarcode: string) {
     const barcode = rawBarcode.trim();
 
     if (!barcode) {
@@ -525,6 +334,7 @@ export class GoodsInPage {
     }
 
     this.form.barcode = barcode;
+    this.closeBarcodeScanner();
     this.lookupExistingItem(barcode, 'barcode', true);
   }
 

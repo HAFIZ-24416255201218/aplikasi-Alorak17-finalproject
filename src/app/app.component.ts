@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { App } from '@capacitor/app';
 import { AlertController, Platform } from '@ionic/angular';
 import { NavigationEnd, Router } from '@angular/router';
@@ -11,11 +11,20 @@ import { AuthService } from './services/auth.service';
   styleUrls: ['app.component.scss'],
   standalone: false,
 })
-export class AppComponent {
+export class AppComponent implements OnDestroy {
   username = 'Pengguna';
   userRole = 'Admin Gudang';
   userInitials = 'P';
+  isSplashMounted = true;
+  isSplashVisible = true;
+  isSplashDark = false;
+  splashProgress = 8;
+  splashStatus = 'Menyiapkan Alorack17';
   private isExitAlertOpen = false;
+  private splashProgressTimer?: number;
+  private splashStatusTimer?: number;
+  private splashHideTimer?: number;
+  private splashUnmountTimer?: number;
 
   constructor(
     private router: Router,
@@ -24,9 +33,12 @@ export class AppComponent {
     private authService: AuthService
   ) {
     const darkMode = localStorage.getItem('darkMode') === 'true';
+    this.isSplashDark = darkMode;
+    this.splashStatus = 'Memuat data gudang';
     document.documentElement.classList.toggle('ion-palette-dark', darkMode);
     document.body.classList.toggle('app-dark-mode', darkMode);
     localStorage.removeItem('password');
+    this.startSplashSequence();
     this.loadCurrentUser();
     this.setupBackButtonHandler();
 
@@ -36,6 +48,10 @@ export class AppComponent {
         this.loadCurrentUser();
         this.keepLoginSession();
       });
+  }
+
+  ngOnDestroy(): void {
+    this.clearSplashTimers();
   }
 
   get isAuthPage(): boolean {
@@ -101,6 +117,57 @@ export class AppComponent {
 
       window.history.back();
     });
+  }
+
+  private startSplashSequence(): void {
+    const statusMessages = [
+      'Memuat data gudang',
+      'Menyiapkan dashboard',
+      'Sinkronisasi inventori',
+      'Hampir selesai',
+    ];
+    let statusIndex = 0;
+
+    this.splashProgressTimer = window.setInterval(() => {
+      this.splashProgress = Math.min(96, this.splashProgress + 4);
+    }, 140);
+
+    this.splashStatusTimer = window.setInterval(() => {
+      statusIndex = (statusIndex + 1) % statusMessages.length;
+      this.splashStatus = statusMessages[statusIndex];
+    }, 760);
+
+    this.splashHideTimer = window.setTimeout(() => {
+      this.splashProgress = 100;
+      this.isSplashVisible = false;
+
+      this.splashUnmountTimer = window.setTimeout(() => {
+        this.isSplashMounted = false;
+        this.clearSplashTimers();
+      }, 420);
+    }, 3200);
+  }
+
+  private clearSplashTimers(): void {
+    if (this.splashProgressTimer) {
+      window.clearInterval(this.splashProgressTimer);
+      this.splashProgressTimer = undefined;
+    }
+
+    if (this.splashStatusTimer) {
+      window.clearInterval(this.splashStatusTimer);
+      this.splashStatusTimer = undefined;
+    }
+
+    if (this.splashHideTimer) {
+      window.clearTimeout(this.splashHideTimer);
+      this.splashHideTimer = undefined;
+    }
+
+    if (this.splashUnmountTimer) {
+      window.clearTimeout(this.splashUnmountTimer);
+      this.splashUnmountTimer = undefined;
+    }
   }
 
   private isDashboardRoute(): boolean {

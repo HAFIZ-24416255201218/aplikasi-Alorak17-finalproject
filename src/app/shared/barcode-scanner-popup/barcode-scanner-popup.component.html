@@ -1,0 +1,32 @@
+<div class="scanner-backdrop" role="dialog" aria-modal="true" aria-label="Popup scanner barcode">
+  <div class="scanner-card">
+    <div class="scanner-header">
+      <div class="scanner-title">
+        <span class="scanner-icon">
+          <ion-icon name="scan-outline"></ion-icon>
+        </span>
+        <div>
+          <strong>Pindai Barcode</strong>
+          <small>Posisikan barcode di dalam bingkai</small>
+        </div>
+      </div>
+
+      <button type="button" class="scanner-close" (click)="close()" aria-label="Tutup scanner">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+    </div>
+
+    <div class="scanner-preview">
+      <video #scannerVideo autoplay playsinline muted></video>
+      <div class="scanner-target" aria-hidden="true">
+        <span class="scan-line"></span>
+        <span class="corner top-left"></span>
+        <span class="corner top-right"></span>
+        <span class="corner bottom-left"></span>
+        <span class="corner bottom-right"></span>
+      </div>
+    </div>
+
+    <p>{{ scanMessage }}</p>
+  </div>
+</div>

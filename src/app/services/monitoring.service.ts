@@ -21,6 +21,10 @@ export interface MonitoringTransaction {
     name: string;
     unit: string;
     current_stock: number;
+    sku?: string;
+    code?: string;
+    item_code?: string;
+    barcode?: string;
     category?: {
       id: number;
       name: string;
@@ -53,6 +57,10 @@ export interface InventoryHistoryItem {
     id: number;
     name: string;
     unit: string;
+    sku?: string;
+    code?: string;
+    item_code?: string;
+    barcode?: string;
     category?: {
       id: number;
       name: string;

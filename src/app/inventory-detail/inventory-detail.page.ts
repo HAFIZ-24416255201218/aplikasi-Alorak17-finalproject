@@ -147,7 +147,18 @@ export class InventoryDetailPage implements OnInit, OnDestroy {
   }
 
   openItemHistory() {
-    this.router.navigate(['/history']);
+    if (!this.item) {
+      return;
+    }
+
+    this.router.navigate(['/history'], {
+      queryParams: {
+        productId: this.item.id,
+        productName: this.item.name,
+        productSku: this.item.sku,
+        productBarcode: this.item.barcode || '',
+      },
+    });
   }
 
   deleteItem() {

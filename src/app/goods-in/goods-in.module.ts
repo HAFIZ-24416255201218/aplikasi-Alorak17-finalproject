@@ -6,6 +6,7 @@ import { IonicModule } from '@ionic/angular';
 import { GoodsInPageRoutingModule } from './goods-in-routing.module';
 import { GoodsInPage } from './goods-in.page';
 import { SearchableSelectModule } from '../shared/searchable-select/searchable-select.module';
+import { BarcodeScannerPopupModule } from '../shared/barcode-scanner-popup/barcode-scanner-popup.module';
 
 @NgModule({
   imports: [
@@ -14,6 +15,7 @@ import { SearchableSelectModule } from '../shared/searchable-select/searchable-s
     IonicModule,
     GoodsInPageRoutingModule,
     SearchableSelectModule,
+    BarcodeScannerPopupModule,
   ],
   declarations: [GoodsInPage],
 })

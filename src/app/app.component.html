@@ -1,4 +1,32 @@
 <ion-app class="app-container">
+  <div
+    class="launch-splash"
+    *ngIf="isSplashMounted"
+    [class.dark]="isSplashDark"
+    [class.hide]="!isSplashVisible"
+    aria-label="Splash screen Alorack17"
+  >
+    <div class="splash-orbit" aria-hidden="true">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+
+    <div class="splash-logo-wrap">
+      <img src="assets/logoilang.png" alt="Alorack17" class="splash-logo" />
+      <span class="splash-pulse" aria-hidden="true"></span>
+    </div>
+
+    <div class="splash-copy">
+      <strong>Alorack17</strong>
+      <span>{{ splashStatus }}</span>
+    </div>
+
+    <div class="splash-progress" aria-hidden="true">
+      <span [style.width.%]="splashProgress"></span>
+    </div>
+  </div>
+
   <nav class="sidebar-nav" id="sidebarNav" *ngIf="!isAuthPage">
     <div class="sidebar-header">
       <img src="assets\logobaru.png" alt="GudangKu" class="brand-logo" />

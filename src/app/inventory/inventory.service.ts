@@ -71,11 +71,18 @@ export interface LaravelItem {
     id?: number;
     name?: string;
     display_name?: string;
+    parent_location?: LocationLike | string | number | null;
+    parentLocation?: LocationLike | string | number | null;
+    parent?: LocationLike | string | number | null;
   };
   locations?: LaravelStockLocation[];
   stock_locations?: LaravelStockLocation[];
   stockLocations?: LaravelStockLocation[];
   item_locations?: LaravelStockLocation[];
+  itemLocations?: LaravelStockLocation[];
+  location_stocks?: LaravelStockLocation[];
+  locationStocks?: LaravelStockLocation[];
+  stocks?: LaravelStockLocation[];
   location_id?: number | string;
   stock_location_id?: number | string;
   low_stock_alert?: number;
@@ -104,7 +111,20 @@ export interface LaravelStockLocation {
     id?: number | string;
     name?: string;
     display_name?: string;
+    parent_location?: LocationLike | string | number | null;
+    parentLocation?: LocationLike | string | number | null;
+    parent?: LocationLike | string | number | null;
   };
+}
+
+interface LocationLike {
+  id?: number | string;
+  name?: string;
+  display_name?: string;
+  location_name?: string;
+  parent_location?: LocationLike | string | number | null;
+  parentLocation?: LocationLike | string | number | null;
+  parent?: LocationLike | string | number | null;
 }
 
 interface ItemDisplayMeta {
@@ -185,7 +205,10 @@ export class InventoryService {
           );
 
           if (stockItem) {
-            return of(stockItem);
+            return this.getBestItemDetail(rolePrefix, [stockItem.id, stockItem.barcode, stockItem.sku, cleanId]).pipe(
+              map(detailItem => detailItem ? this.mergeInventoryItemDetail(stockItem, detailItem) : stockItem),
+              catchError(() => of(stockItem))
+            );
           }
 
           return this.getItemDetailById(rolePrefix, cleanId);
@@ -197,15 +220,47 @@ export class InventoryService {
   }
 
   private getItemDetailById(rolePrefix: string, cleanId: string): Observable<InventoryItem | undefined> {
-    return this.http.get<LaravelItem>(`${this.apiUrl}/${rolePrefix}/items/${cleanId}`).pipe(
-      map(item => this.mergeItemWithRecentMeta(this.mapToInventoryItem(item), this.getRecentItems())),
-      catchError(() =>
-        this.http.get<LaravelItem>(`${this.apiUrl}/items/${cleanId}`).pipe(
+    const endpoints = Array.from(new Set([
+      `${this.apiUrl}/${rolePrefix}/items/${cleanId}`,
+      `${this.apiUrl}/items/${cleanId}`,
+    ]));
+
+    return forkJoin(
+      endpoints.map(endpoint =>
+        this.http.get<LaravelItem>(endpoint).pipe(
           map(item => this.mergeItemWithRecentMeta(this.mapToInventoryItem(item), this.getRecentItems())),
           catchError(() => of(undefined))
         )
       )
+    ).pipe(
+      map(items => this.pickBestStockLocationItem(items))
     );
+  }
+
+  private getBestItemDetail(rolePrefix: string, keys: Array<string | undefined>): Observable<InventoryItem | undefined> {
+    const uniqueKeys = Array.from(new Set(
+      keys
+        .map(key => String(key || '').trim())
+        .filter(key => !!key)
+        .map(key => key.replace(/^SKU-/i, ''))
+    ));
+
+    if (!uniqueKeys.length) {
+      return of(undefined);
+    }
+
+    return forkJoin(uniqueKeys.map(key => this.getItemDetailById(rolePrefix, key))).pipe(
+      map(items => {
+        return this.pickBestStockLocationItem(items);
+      })
+    );
+  }
+
+  private pickBestStockLocationItem(items: Array<InventoryItem | undefined>): InventoryItem | undefined {
+    const validItems = items.filter((item): item is InventoryItem => !!item);
+
+    return validItems.find(item => item.hasServerStockLocations && item.locations?.length)
+      || validItems[0];
   }
 
   getItemBySku(sku: string): Observable<InventoryItem | undefined> {
@@ -252,7 +307,13 @@ export class InventoryService {
     ];
 
     return this.findItemLocallyByBarcode(cleanBarcode).pipe(
-      switchMap(item => item ? of(item) : this.tryBarcodeEndpoint(attempts, cleanBarcode))
+      switchMap(item => item
+        ? this.getBestItemDetail(rolePrefix, [item.id, item.barcode, item.sku, cleanBarcode]).pipe(
+            map(detailItem => detailItem ? this.mergeInventoryItemDetail(item, detailItem) : item),
+            catchError(() => of(item))
+          )
+        : this.tryBarcodeEndpoint(attempts, cleanBarcode)
+      )
     );
   }
 
@@ -457,6 +518,7 @@ export class InventoryService {
       ? `${parentLocation}/${locationName}`
       : locationName;
     const trustedDisplayLocations = this.getTrustedDisplayLocations(displayMeta.locations, quantity);
+    const hasServerStockLocations = backendLocations.length > 0;
     const locations = this.normalizeDisplayLocations(
       backendLocations.length
         ? backendLocations
@@ -469,7 +531,7 @@ export class InventoryService {
       parentLocation,
       quantity,
       backendLocationId || (!hasBackendLocation ? '1' : undefined),
-      !backendLocationName
+      !backendLocationName && !hasServerStockLocations
     );
 
     return {
@@ -490,6 +552,7 @@ export class InventoryService {
       mediumThreshold,
       locations,
       updatedAt: item.updated_at || rawItem.updated_at,
+      hasServerStockLocations,
     };
   }
 
@@ -547,7 +610,7 @@ export class InventoryService {
   private extractBackendLocations(rawItem: LaravelItem, item: LaravelItem): InventoryLocation[] {
     const raw = rawItem as any;
     const backendItem = item as any;
-    const candidates = [
+    const sourceLists = [
       raw.stock_locations,
       raw.stockLocations,
       raw.locations,
@@ -555,6 +618,7 @@ export class InventoryService {
       raw.itemLocations,
       raw.stocks,
       raw.location_stocks,
+      raw.locationStocks,
       backendItem.stock_locations,
       backendItem.stockLocations,
       backendItem.locations,
@@ -562,9 +626,19 @@ export class InventoryService {
       backendItem.itemLocations,
       backendItem.stocks,
       backendItem.location_stocks,
-    ].find(value => Array.isArray(value)) as LaravelStockLocation[] | undefined;
+      backendItem.locationStocks,
+    ];
+    const seenLists = new Set<LaravelStockLocation[]>();
+    const candidates = sourceLists.reduce((allLocations: LaravelStockLocation[], value) => {
+      if (!Array.isArray(value) || seenLists.has(value)) {
+        return allLocations;
+      }
 
-    if (!candidates?.length) {
+      seenLists.add(value);
+      return allLocations.concat(value);
+    }, []);
+
+    if (!candidates.length) {
       return [];
     }
 
@@ -584,13 +658,7 @@ export class InventoryService {
       raw.stockLocationId ??
       raw.id;
 
-    const name =
-      locationObject?.display_name ||
-      locationObject?.name ||
-      raw.display_name ||
-      raw.name ||
-      raw.location_name ||
-      (id ? `Lokasi ${id}` : '');
+    const name = this.getBackendLocationName(raw, locationObject, id);
 
     const quantity =
       raw.stock_quantity ??
@@ -613,6 +681,62 @@ export class InventoryService {
       backendValue: id !== undefined && id !== null ? String(id) : undefined,
       quantity: normalizedQuantity,
     };
+  }
+
+  private getBackendLocationName(raw: any, locationObject: any, id?: number | string): string {
+    const displayName =
+      locationObject?.display_name ||
+      locationObject?.full_name ||
+      locationObject?.path ||
+      raw.display_name ||
+      raw.full_name ||
+      raw.path ||
+      raw.location_display_name ||
+      raw.location_name;
+
+    if (displayName) {
+      return String(displayName);
+    }
+
+    const name =
+      locationObject?.name ||
+      raw.name ||
+      (id ? `Lokasi ${id}` : '');
+    const parentName = this.getBackendParentLocationName(locationObject);
+
+    if (parentName && name && !String(name).includes('/')) {
+      return `${parentName}/${name}`;
+    }
+
+    return name ? String(name) : '';
+  }
+
+  private getBackendParentLocationName(locationObject: any): string {
+    const parent =
+      locationObject?.parent_location ||
+      locationObject?.parentLocation ||
+      locationObject?.parent ||
+      locationObject?.parent_location_relation ||
+      locationObject?.parentLocationRelation;
+
+    if (!parent || typeof parent !== 'object') {
+      return '';
+    }
+
+    const parentName =
+      parent.display_name ||
+      parent.full_name ||
+      parent.path ||
+      parent.location_name ||
+      parent.name ||
+      '';
+    const grandParentName = this.getBackendParentLocationName(parent);
+
+    if (grandParentName && parentName && !String(parentName).includes('/')) {
+      return `${grandParentName}/${parentName}`;
+    }
+
+    return parentName ? String(parentName) : '';
   }
 
   private extractBackendLocationQuantity(rawItem: LaravelItem, item: LaravelItem, fallbackQuantity: number): number {
@@ -983,7 +1107,13 @@ export class InventoryService {
         return;
       }
 
-      const locations = this.mergeLocationLists(existing.locations || [], item.locations || []);
+      const hasServerStockLocations = Boolean(existing.hasServerStockLocations || item.hasServerStockLocations);
+      const locations = hasServerStockLocations
+        ? this.mergeLocationLists(
+            existing.hasServerStockLocations ? (existing.locations || []) : [],
+            item.hasServerStockLocations ? (item.locations || []) : []
+          )
+        : this.mergeLocationLists(existing.locations || [], item.locations || []);
       const locationTotal = locations.reduce((total, location) => total + Number(location.quantity || 0), 0);
       const quantity = Math.max(Number(existing.quantity || 0), Number(item.quantity || 0), locationTotal);
 
@@ -994,6 +1124,7 @@ export class InventoryService {
         locations,
         location: locations[0] ? this.getLocationPath(locations[0]) : existing.location,
         parentLocation: locations[0]?.parentLocation || existing.parentLocation,
+        hasServerStockLocations,
         updatedAt: this.getLatestDate(existing.updatedAt, item.updatedAt),
       });
     });
@@ -1058,6 +1189,27 @@ export class InventoryService {
       minThreshold: recentItem.minThreshold ?? item.minThreshold,
       mediumThreshold: recentItem.mediumThreshold ?? item.mediumThreshold,
       updatedAt: this.getLatestDate(item.updatedAt, recentItem.updatedAt),
+    };
+  }
+
+  private mergeInventoryItemDetail(listItem: InventoryItem, detailItem: InventoryItem): InventoryItem {
+    const locations = detailItem.hasServerStockLocations && detailItem.locations?.length
+      ? detailItem.locations
+      : (detailItem.locations?.length ? detailItem.locations : listItem.locations);
+    const locationTotal = (locations || []).reduce((total, location) => total + Number(location.quantity || 0), 0);
+    const quantity = Math.max(Number(listItem.quantity || 0), Number(detailItem.quantity || 0), locationTotal);
+
+    return {
+      ...listItem,
+      ...detailItem,
+      barcode: detailItem.barcode || listItem.barcode,
+      notes: detailItem.notes || listItem.notes,
+      quantity,
+      locations,
+      location: locations?.[0] ? this.getLocationPath(locations[0]) : (detailItem.location || listItem.location),
+      parentLocation: locations?.[0]?.parentLocation || detailItem.parentLocation || listItem.parentLocation,
+      hasServerStockLocations: Boolean(detailItem.hasServerStockLocations || listItem.hasServerStockLocations),
+      updatedAt: this.getLatestDate(detailItem.updatedAt, listItem.updatedAt),
     };
   }
 

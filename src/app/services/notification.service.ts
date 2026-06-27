@@ -1,4 +1,4 @@
-import { Injectable, NgZone } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { ToastController } from '@ionic/angular';
 import { BehaviorSubject, Observable, Subscription, forkJoin, of, timer } from 'rxjs';
@@ -31,6 +31,7 @@ export class NotificationService {
   private pollingSubscription?: Subscription;
   private readonly readStatusStorageKey = 'alorack-notifications-read';
   private toastedKeys = new Set<string>();
+  private toastTimer?: number;
 
   constructor(
     private authService: AuthService,
@@ -176,23 +177,55 @@ export class NotificationService {
     this.notificationsSubject.next(sortedNotifications);
     this.unreadCountSubject.next(unreadCount);
 
-    sortedNotifications.forEach(notif => {
+    const newNotifications = sortedNotifications.filter(notif => {
       if (!notif.read && !this.toastedKeys.has(notif.key)) {
         this.toastedKeys.add(notif.key);
-        this.showToast(notif);
+        return true;
       }
+
+      return false;
     });
+
+    if (newNotifications.length) {
+      this.scheduleStockToast(newNotifications);
+    }
   }
 
-  private async showToast(notif: Notification) {
+  private scheduleStockToast(notifications: Notification[]) {
+    if (this.toastTimer) {
+      window.clearTimeout(this.toastTimer);
+    }
+
+    this.toastTimer = window.setTimeout(() => {
+      this.showToastSummary(notifications);
+      this.toastTimer = undefined;
+    }, 3400);
+  }
+
+  private async showToastSummary(notifications: Notification[]) {
+    const lowCount = notifications.filter(notif => notif.category === 'low').length;
+    const mediumCount = notifications.filter(notif => notif.category === 'medium').length;
+    const firstNotification = notifications[0];
+    const messageParts = [
+      lowCount ? `${lowCount} stok rendah/habis` : '',
+      mediumCount ? `${mediumCount} stok hampir rendah` : '',
+    ].filter(Boolean);
+    const message = notifications.length === 1
+      ? firstNotification.message
+      : messageParts.join(', ');
+
+    await this.toastController.dismiss(undefined, undefined, 'stock-toast').catch(() => undefined);
+
     const toast = await this.toastController.create({
-      message: `${notif.title}: ${notif.message}`,
-      duration: 5000,
+      id: 'stock-toast',
+      header: notifications.length === 1 ? firstNotification.title : 'Peringatan Stok',
+      message,
+      duration: 6500,
       position: 'top',
-      color: notif.category === 'low' ? 'danger' : 'warning',
+      cssClass: notifications.some(notif => notif.category === 'low') ? 'stock-toast stock-toast-danger' : 'stock-toast stock-toast-warning',
       buttons: [
         {
-          text: 'Buka',
+          text: 'Lihat',
           role: 'info',
           handler: () => {
             this.router.navigate(['/notifications']);

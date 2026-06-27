@@ -39,6 +39,7 @@ export class StockMutationPage {
   inventoryItems: InventoryItem[] = [];
   locationsList: LocationItem[] = [];
   isSubmitting = false;
+  isScannerOpen = false;
   lookupMessage = '';
   activeLookupSource: 'barcode' | 'code' | '' = '';
   private lookupTimers: Partial<Record<'barcode' | 'code', number>> = {};
@@ -54,6 +55,7 @@ export class StockMutationPage {
 
   ionViewWillEnter() {
     this.isSubmitting = false;
+    this.closeBarcodeScanner();
     this.inventoryService.getItems().subscribe(items => {
       this.inventoryItems = items;
     });
@@ -107,6 +109,36 @@ export class StockMutationPage {
     this.lookupExistingItem(this.form.barcode, 'barcode');
   }
 
+  openBarcodeScanner() {
+    if (this.isBarcodeFieldLocked) {
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      window.alert('Perangkat ini belum mendukung akses kamera.');
+      return;
+    }
+
+    this.isScannerOpen = true;
+  }
+
+  closeBarcodeScanner() {
+    this.isScannerOpen = false;
+  }
+
+  applyScannedBarcode(rawBarcode: string) {
+    const barcode = rawBarcode.trim();
+
+    if (!barcode) {
+      window.alert('Barcode tidak terbaca. Coba scan ulang.');
+      return;
+    }
+
+    this.form.barcode = barcode;
+    this.closeBarcodeScanner();
+    this.lookupExistingItem(barcode, 'barcode');
+  }
+
   scheduleExistingItemLookup(value: string, source: 'barcode' | 'code') {
     const cleanValue = String(value || '').trim();
 
@@ -134,19 +166,13 @@ export class StockMutationPage {
     const item = this.selectedItem;
 
     if (!item) {
-      return this.allLocationOptions(0);
+      return [];
     }
 
-    const locations = item.locations?.length
-      ? item.locations
-      : [{ name: item.location, parentLocation: item.parentLocation, quantity: item.quantity }];
+    const locations = this.getBalancedSourceLocations(item);
     const sourceOptions = this.uniqueLocationOptions(locations);
-    const mergedOptions = [
-      ...sourceOptions,
-      ...this.allLocationOptions(item.quantity).filter(option => !sourceOptions.some(source => source.backendValue === option.backendValue)),
-    ];
 
-    return Array.from(new Map(mergedOptions.map(option => [option.label, option])).values());
+    return Array.from(new Map(sourceOptions.map(option => [option.label, option])).values());
   }
 
   get destinationLocationOptions() {
@@ -217,9 +243,7 @@ export class StockMutationPage {
         this.isSubmitting = false;
         this.notificationService.refresh();
         const nextLocations = this.moveStockBetweenLocations(
-          selectedItem.locations?.length
-            ? selectedItem.locations
-            : [{ name: selectedItem.location, parentLocation: selectedItem.parentLocation, quantity: selectedItem.quantity }],
+          this.getBalancedSourceLocations(selectedItem),
           fromLocationOption.label,
           toLocationName,
           fromLocationVal,
@@ -282,8 +306,7 @@ export class StockMutationPage {
 
     const localItem = this.findLoadedItemByCodeOrBarcode(value);
     if (localItem) {
-      this.fillFormFromItem(localItem, source);
-      this.lookupMessage = 'Barang ditemukan. Data otomatis terisi.';
+      this.fillFormWithDetailedItem(localItem, source);
       return;
     }
 
@@ -306,6 +329,21 @@ export class StockMutationPage {
       error: () => {
         this.clearSelectedItemLock();
         this.lookupMessage = 'Barang belum terdeteksi dari server.';
+      },
+    });
+  }
+
+  private fillFormWithDetailedItem(localItem: InventoryItem, source: 'barcode' | 'code') {
+    this.inventoryService.getItemById(localItem.id).subscribe({
+      next: detailedItem => {
+        const item = detailedItem || localItem;
+        this.inventoryItems = this.upsertLoadedInventoryItem(item);
+        this.fillFormFromItem(item, source);
+        this.lookupMessage = 'Barang ditemukan. Data otomatis terisi.';
+      },
+      error: () => {
+        this.fillFormFromItem(localItem, source);
+        this.lookupMessage = 'Barang ditemukan. Data otomatis terisi.';
       },
     });
   }
@@ -362,13 +400,50 @@ export class StockMutationPage {
     return String(value || '').trim().toLowerCase();
   }
 
-  private allLocationOptions(quantity: number): LocationOption[] {
-    return this.locationsList.map(location => ({
-      value: String(location.id),
-      backendValue: String(location.id),
-      label: location.display_name || location.name,
-      quantity,
+  private getBalancedSourceLocations(item: InventoryItem): InventoryLocation[] {
+    const primaryLocation = this.getPrimarySourceLocation(item);
+    const serverLocations = item.hasServerStockLocations && item.locations?.length
+      ? item.locations.filter(location => Number(location.quantity || 0) > 0)
+      : [];
+    const sourceLocations = serverLocations.length
+      ? serverLocations
+      : [primaryLocation];
+    const locations = sourceLocations.map(location => ({
+      ...location,
+      quantity: Number(location.quantity || 0),
     }));
+
+    if (serverLocations.length) {
+      return locations;
+    }
+
+    const totalStock = Number(item.quantity || 0);
+    const locationTotal = locations.reduce((sum, location) => sum + Number(location.quantity || 0), 0);
+
+    if (!locations.length || totalStock <= 0 || locationTotal >= totalStock) {
+      return locations;
+    }
+
+    const difference = totalStock - locationTotal;
+    const firstLocation = locations[0];
+
+    return [
+      {
+        ...firstLocation,
+        quantity: Number(firstLocation.quantity || 0) + difference,
+      },
+      ...locations.slice(1),
+    ];
+  }
+
+  private getPrimarySourceLocation(item: InventoryItem): InventoryLocation {
+    const name = item.location || 'Main Warehouse';
+    return {
+      name,
+      parentLocation: item.parentLocation,
+      backendValue: this.resolveBackendLocationValue(name) || '1',
+      quantity: Number(item.quantity || 0),
+    };
   }
 
   private moveStockBetweenLocations(
@@ -403,7 +478,7 @@ export class StockMutationPage {
 
   private uniqueLocationOptions(locations: InventoryLocation[]) {
     const options = locations
-      .filter(location => location.name)
+      .filter(location => location.name && Number(location.quantity || 0) > 0)
       .map(location => {
         const label = this.getLocationPath(location);
         const backendValue = location.backendValue || this.resolveBackendLocationValue(label);
@@ -454,6 +529,26 @@ export class StockMutationPage {
       .replace('gate inbound', 'receiving area')
       .replace('packing area', 'packing area')
       .replace('retail outlet', 'retail outlet');
+
+    if (searchName === 'main warehouse' || searchName === 'gudang utama') {
+      return '1';
+    }
+
+    if (searchName === 'main warehouse/rak a') {
+      return '5';
+    }
+
+    if (searchName.endsWith('/01') || searchName === '01') {
+      return '6';
+    }
+
+    if (searchName.endsWith('/02') || searchName === '02') {
+      return '7';
+    }
+
+    if (searchName.endsWith('/03') || searchName === '03') {
+      return '8';
+    }
 
     const match = this.findBestLocationMatch(searchName);
 

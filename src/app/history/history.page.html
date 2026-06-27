@@ -1,13 +1,8 @@
 <ion-content [fullscreen]="true" class="history-content">
   <div class="history-top">
     <div class="history-title-row">
-      <button
-        class="back-button"
-        type="button"
-        aria-label="Kembali ke detail barang"
-        *ngIf="productIdFilter"
-        (click)="goBackToProductDetail()"
-      >
+      <button class="back-button" type="button" aria-label="Kembali ke detail barang" *ngIf="productIdFilter"
+        (click)="goBackToProductDetail()">
         <ion-icon name="chevron-back-outline"></ion-icon>
       </button>
 
@@ -18,14 +13,17 @@
 
     </div>
 
-    <div class="search-box">
-      <ion-icon name="search-outline"></ion-icon>
-      <input
-        [(ngModel)]="searchQuery"
-        (input)="filterTransactions()"
-        type="text"
-        placeholder="Cari nama atau kode barang..."
-      />
+    <div class="history-search-row">
+      <div class="search-box">
+        <ion-icon name="search-outline"></ion-icon>
+        <input [(ngModel)]="searchQuery" (input)="filterTransactions()" type="text"
+          placeholder="Cari nama, kode, atau barcode..." />
+      </div>
+
+      <button class="history-scan-button" type="button" (click)="openBarcodeScanner()"
+        aria-label="Scan barcode transaksi">
+        <ion-icon name="camera-outline"></ion-icon>
+      </button>
     </div>
   </div>
 
@@ -73,32 +71,16 @@
     </div>
 
     <div class="tabs-container">
-      <button
-        class="tab-button"
-        [class.active]="activeTab === 'all'"
-        (click)="selectTab('all')"
-      >
+      <button class="tab-button" [class.active]="activeTab === 'all'" (click)="selectTab('all')">
         Semua
       </button>
-      <button
-        class="tab-button"
-        [class.active]="activeTab === 'in'"
-        (click)="selectTab('in')"
-      >
+      <button class="tab-button" [class.active]="activeTab === 'in'" (click)="selectTab('in')">
         Masuk
       </button>
-      <button
-        class="tab-button"
-        [class.active]="activeTab === 'out'"
-        (click)="selectTab('out')"
-      >
+      <button class="tab-button" [class.active]="activeTab === 'out'" (click)="selectTab('out')">
         Keluar
       </button>
-      <button
-        class="tab-button"
-        [class.active]="activeTab === 'move'"
-        (click)="selectTab('move')"
-      >
+      <button class="tab-button" [class.active]="activeTab === 'move'" (click)="selectTab('move')">
         Berpindah
       </button>
     </div>
@@ -113,7 +95,8 @@
       </div>
 
       <div class="timeline">
-        <div class="timeline-item" *ngFor="let transaction of group.transactions" [ngClass]="getCardClass(transaction.type)">
+        <div class="timeline-item" *ngFor="let transaction of group.transactions"
+          [ngClass]="getCardClass(transaction.type)">
           <div class="timeline-dot"></div>
 
           <div class="transaction-card">
@@ -162,3 +145,6 @@
 </ion-content>
 
 <app-bottom-nav active="history"></app-bottom-nav>
+
+<app-barcode-scanner-popup *ngIf="isScannerOpen" (scanned)="applyScannedBarcode($event)"
+  (closed)="closeBarcodeScanner()"></app-barcode-scanner-popup>

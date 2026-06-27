@@ -2,9 +2,9 @@
   <div class="stock-mutation-shell">
     <div class="stock-mutation-header">
       <div class="title-group">
-        <div class="title-icon">
+        <button class="close-button" type="button" (click)="close()" aria-label="Tutup">
           <ion-icon name="arrow-back-outline"></ion-icon>
-        </div>
+        </button>
         <h1>Mutasi Stok</h1>
       </div>
 
@@ -16,23 +16,18 @@
     <form class="goods-form">
       <label class="field">
         <span>Nama Barang</span>
-        <input [(ngModel)]="form.itemName" name="itemName" type="text" placeholder="Ketik nama barang" [disabled]="areItemDetailFieldsLocked" />
+        <input [(ngModel)]="form.itemName" name="itemName" type="text" placeholder="Ketik nama barang"
+          [disabled]="areItemDetailFieldsLocked" />
       </label>
 
       <label class="field">
         <span>Kode Barang</span>
         <div class="input-with-icon single">
-          <input
-            [(ngModel)]="form.itemCode"
-            name="itemCode"
-            type="text"
-            placeholder="Ketik kode barang"
-            [disabled]="isCodeFieldLocked"
-            (ngModelChange)="scheduleExistingItemLookup($event, 'code')"
-            (change)="lookupExistingItemFromCode()"
-            (blur)="lookupExistingItemFromCode()"
-          />
-          <button class="scan-button" type="button" aria-label="Cari dari kode" [disabled]="isCodeFieldLocked" (click)="lookupExistingItemFromCode()">
+          <input [(ngModel)]="form.itemCode" name="itemCode" type="text" placeholder="Ketik kode barang"
+            [disabled]="isCodeFieldLocked" (ngModelChange)="scheduleExistingItemLookup($event, 'code')"
+            (change)="lookupExistingItemFromCode()" (blur)="lookupExistingItemFromCode()" />
+          <button class="scan-button" type="button" aria-label="Cari dari kode" [disabled]="isCodeFieldLocked"
+            (click)="lookupExistingItemFromCode()">
             <ion-icon name="search-outline"></ion-icon>
           </button>
         </div>
@@ -41,18 +36,12 @@
       <label class="field">
         <span>Barcode</span>
         <div class="input-with-icon single">
-          <input
-            [(ngModel)]="form.barcode"
-            name="barcode"
-            type="text"
-            placeholder="Ketik barcode"
-            [disabled]="isBarcodeFieldLocked"
-            (ngModelChange)="scheduleExistingItemLookup($event, 'barcode')"
-            (change)="lookupExistingItemFromBarcode()"
-            (blur)="lookupExistingItemFromBarcode()"
-          />
-          <button class="scan-button" type="button" aria-label="Cari dari barcode" [disabled]="isBarcodeFieldLocked" (click)="lookupExistingItemFromBarcode()">
-            <ion-icon name="barcode-outline"></ion-icon>
+          <input [(ngModel)]="form.barcode" name="barcode" type="text" placeholder="Ketik barcode"
+            [disabled]="isBarcodeFieldLocked" (ngModelChange)="scheduleExistingItemLookup($event, 'barcode')"
+            (change)="lookupExistingItemFromBarcode()" (blur)="lookupExistingItemFromBarcode()" />
+          <button class="scan-button" type="button" aria-label="Scan barcode dari kamera"
+            [disabled]="isBarcodeFieldLocked" (click)="openBarcodeScanner()">
+            <ion-icon name="camera-outline"></ion-icon>
           </button>
         </div>
         <small class="lookup-message" *ngIf="lookupMessage">{{ lookupMessage }}</small>
@@ -61,26 +50,16 @@
       <div class="primary-fields" aria-label="Input utama mutasi stok">
         <label class="field feature-field">
           <span>Dari Lokasi</span>
-          <app-searchable-select
-            [(ngModel)]="form.fromLocation"
-            name="fromLocation"
-            [options]="sourceSelectOptions"
-            placeholder="Pilih lokasi asal..."
-            searchPlaceholder="Cari lokasi"
-            emptyText="Lokasi tidak ditemukan"
-          ></app-searchable-select>
+          <app-searchable-select [(ngModel)]="form.fromLocation" name="fromLocation" [options]="sourceSelectOptions"
+            placeholder="Pilih lokasi asal..." searchPlaceholder="Cari lokasi"
+            emptyText="Lokasi tidak ditemukan"></app-searchable-select>
         </label>
 
         <label class="field feature-field">
           <span>Ke Lokasi</span>
-          <app-searchable-select
-            [(ngModel)]="form.toLocation"
-            name="toLocation"
-            [options]="destinationSelectOptions"
-            placeholder="Pilih lokasi tujuan..."
-            searchPlaceholder="Cari lokasi"
-            emptyText="Lokasi tidak ditemukan"
-          ></app-searchable-select>
+          <app-searchable-select [(ngModel)]="form.toLocation" name="toLocation" [options]="destinationSelectOptions"
+            placeholder="Pilih lokasi tujuan..." searchPlaceholder="Cari lokasi"
+            emptyText="Lokasi tidak ditemukan"></app-searchable-select>
         </label>
 
         <label class="field feature-field">
@@ -91,7 +70,8 @@
 
       <label class="field">
         <span>Kategori</span>
-        <input [(ngModel)]="form.category" name="category" type="text" placeholder="Kategori barang" [disabled]="areItemDetailFieldsLocked" />
+        <input [(ngModel)]="form.category" name="category" type="text" placeholder="Kategori barang"
+          [disabled]="areItemDetailFieldsLocked" />
       </label>
 
       <label class="field">
@@ -102,12 +82,14 @@
       <div class="threshold-grid">
         <label class="field">
           <span>Batas Minimum Stok</span>
-          <input [(ngModel)]="form.minThreshold" name="minThreshold" type="number" min="0" placeholder="50" [disabled]="areItemDetailFieldsLocked" />
+          <input [(ngModel)]="form.minThreshold" name="minThreshold" type="number" min="0" placeholder="50"
+            [disabled]="areItemDetailFieldsLocked" />
         </label>
 
         <label class="field">
           <span>Batas Stok Sedang</span>
-          <input [(ngModel)]="form.mediumThreshold" name="mediumThreshold" type="number" min="0" placeholder="150" [disabled]="areItemDetailFieldsLocked" />
+          <input [(ngModel)]="form.mediumThreshold" name="mediumThreshold" type="number" min="0" placeholder="150"
+            [disabled]="areItemDetailFieldsLocked" />
         </label>
       </div>
 
@@ -122,3 +104,6 @@
     </button>
   </div>
 </ion-content>
+
+<app-barcode-scanner-popup *ngIf="isScannerOpen" (scanned)="applyScannedBarcode($event)"
+  (closed)="closeBarcodeScanner()"></app-barcode-scanner-popup>

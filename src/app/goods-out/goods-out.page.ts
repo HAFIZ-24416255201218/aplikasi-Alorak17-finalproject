@@ -38,6 +38,7 @@ export class GoodsOutPage {
   inventoryItems: InventoryItem[] = [];
   locationsList: LocationItem[] = [];
   isSubmitting = false;
+  isScannerOpen = false;
   lookupMessage = '';
   activeLookupSource: 'barcode' | 'code' | '' = '';
   private lookupTimers: Partial<Record<'barcode' | 'code', number>> = {};
@@ -53,6 +54,7 @@ export class GoodsOutPage {
 
   ionViewWillEnter() {
     this.isSubmitting = false;
+    this.closeBarcodeScanner();
     this.inventoryService.getItems().subscribe(items => {
       this.inventoryItems = items;
     });
@@ -99,6 +101,36 @@ export class GoodsOutPage {
     this.lookupExistingItem(this.form.barcode, 'barcode');
   }
 
+  openBarcodeScanner() {
+    if (this.isBarcodeFieldLocked) {
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      window.alert('Perangkat ini belum mendukung akses kamera.');
+      return;
+    }
+
+    this.isScannerOpen = true;
+  }
+
+  closeBarcodeScanner() {
+    this.isScannerOpen = false;
+  }
+
+  applyScannedBarcode(rawBarcode: string) {
+    const barcode = rawBarcode.trim();
+
+    if (!barcode) {
+      window.alert('Barcode tidak terbaca. Coba scan ulang.');
+      return;
+    }
+
+    this.form.barcode = barcode;
+    this.closeBarcodeScanner();
+    this.lookupExistingItem(barcode, 'barcode');
+  }
+
   scheduleExistingItemLookup(value: string, source: 'barcode' | 'code') {
     const cleanValue = String(value || '').trim();
 
@@ -127,7 +159,7 @@ export class GoodsOutPage {
     const quantity = Number(this.form.quantity);
     const sourceLocation = this.sourceLocationOptions.find(location => location.value === this.form.fromLocation);
 
-    if (!selectedItem || Number.isNaN(quantity) || quantity <= 0 || !this.form.fromLocation) {
+    if (!selectedItem || Number.isNaN(quantity) || quantity <= 0 || !sourceLocation) {
       window.alert('Cari barang dari kode/barcode, pilih lokasi asal, dan isi jumlah yang valid.');
       return;
     }
@@ -142,7 +174,7 @@ export class GoodsOutPage {
       return;
     }
 
-    const fromLocationId = sourceLocation?.backendValue || this.form.fromLocation;
+    const fromLocationId = sourceLocation.backendValue || this.resolveBackendLocationValue(sourceLocation.label) || this.form.fromLocation;
     if (!/^\d+$/.test(fromLocationId)) {
       window.alert('Lokasi asal belum punya ID valid dari server. Refresh inventori, lalu pilih barang dari daftar server.');
       return;
@@ -182,13 +214,13 @@ export class GoodsOutPage {
     const item = this.selectedItem;
 
     if (!item) {
-      return this.allLocationOptions(0);
+      return [];
     }
 
     const locations = this.getBalancedSourceLocations(item);
 
     const options = locations
-      .filter(location => location.name)
+      .filter(location => location.name && Number(location.quantity || 0) > 0)
       .map(location => {
         const label = this.getLocationPath(location);
         const backendValue = location.backendValue || this.resolveBackendLocationValue(label);
@@ -200,22 +232,26 @@ export class GoodsOutPage {
         };
       });
 
-    const mergedOptions = [
-      ...options,
-      ...this.allLocationOptions(item.quantity).filter(option => !options.some(source => source.backendValue === option.backendValue)),
-    ];
-
-    return Array.from(new Map(mergedOptions.map(option => [option.label, option])).values());
+    return Array.from(new Map(options.map(option => [option.label, option])).values());
   }
 
   private getBalancedSourceLocations(item: InventoryItem): InventoryLocation[] {
-    const locations = (item.locations?.length
-      ? item.locations
-      : [{ name: item.location, parentLocation: item.parentLocation, quantity: item.quantity }]
-    ).map(location => ({
+    const primaryLocation = this.getPrimarySourceLocation(item);
+    const serverLocations = item.hasServerStockLocations && item.locations?.length
+      ? item.locations.filter(location => Number(location.quantity || 0) > 0)
+      : [];
+    const sourceLocations = serverLocations.length
+      ? serverLocations
+      : [primaryLocation];
+
+    const locations = sourceLocations.map(location => ({
       ...location,
       quantity: Number(location.quantity || 0),
     }));
+
+    if (serverLocations.length) {
+      return locations;
+    }
 
     const totalStock = Number(item.quantity || 0);
     const locationTotal = locations.reduce((sum, location) => sum + Number(location.quantity || 0), 0);
@@ -272,8 +308,7 @@ export class GoodsOutPage {
 
     const localItem = this.findLoadedItemByCodeOrBarcode(value);
     if (localItem) {
-      this.fillFormFromItem(localItem, source);
-      this.lookupMessage = 'Barang ditemukan. Data otomatis terisi.';
+      this.fillFormWithDetailedItem(localItem, source);
       return;
     }
 
@@ -296,6 +331,21 @@ export class GoodsOutPage {
       error: () => {
         this.clearSelectedItemLock();
         this.lookupMessage = 'Barang belum terdeteksi dari server.';
+      },
+    });
+  }
+
+  private fillFormWithDetailedItem(localItem: InventoryItem, source: 'barcode' | 'code') {
+    this.inventoryService.getItemById(localItem.id).subscribe({
+      next: detailedItem => {
+        const item = detailedItem || localItem;
+        this.inventoryItems = this.upsertLoadedInventoryItem(item);
+        this.fillFormFromItem(item, source);
+        this.lookupMessage = 'Barang ditemukan. Data otomatis terisi.';
+      },
+      error: () => {
+        this.fillFormFromItem(localItem, source);
+        this.lookupMessage = 'Barang ditemukan. Data otomatis terisi.';
       },
     });
   }
@@ -351,13 +401,14 @@ export class GoodsOutPage {
     return String(value || '').trim().toLowerCase();
   }
 
-  private allLocationOptions(quantity: number): LocationOption[] {
-    return this.locationsList.map(location => ({
-      value: String(location.id),
-      backendValue: String(location.id),
-      label: location.display_name || location.name,
-      quantity,
-    }));
+  private getPrimarySourceLocation(item: InventoryItem): InventoryLocation {
+    const name = item.location || 'Main Warehouse';
+    return {
+      name,
+      parentLocation: item.parentLocation,
+      backendValue: this.resolveBackendLocationValue(name) || '1',
+      quantity: Number(item.quantity || 0),
+    };
   }
 
   private rememberUpdatedStock(
@@ -448,6 +499,16 @@ export class GoodsOutPage {
       : location.name;
   }
 
+  private normalizeLocationPath(path: string): string {
+    return path
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .replace('gudang utama', 'main warehouse')
+      .replace('area receiving', 'receiving area')
+      .replace('gate inbound', 'receiving area');
+  }
+
   private resolveBackendLocationValue(locationName: string): string {
     const cleanName = locationName.trim();
     const normalizedName = cleanName.toLowerCase();
@@ -462,6 +523,26 @@ export class GoodsOutPage {
       .replace('gate inbound', 'receiving area')
       .replace('packing area', 'packing area')
       .replace('retail outlet', 'retail outlet');
+
+    if (searchName === 'main warehouse' || searchName === 'gudang utama') {
+      return '1';
+    }
+
+    if (searchName === 'main warehouse/rak a') {
+      return '5';
+    }
+
+    if (searchName.endsWith('/01') || searchName === '01') {
+      return '6';
+    }
+
+    if (searchName.endsWith('/02') || searchName === '02') {
+      return '7';
+    }
+
+    if (searchName.endsWith('/03') || searchName === '03') {
+      return '8';
+    }
 
     const bestMatch = this.findBestLocationMatch(searchName);
     if (bestMatch) {

@@ -5,7 +5,7 @@ import androidx.core.splashscreen.SplashScreen;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
-    private static final long SPLASH_MIN_DURATION_MS = 3000L;
+    private static final long SPLASH_MIN_DURATION_MS = 0L;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

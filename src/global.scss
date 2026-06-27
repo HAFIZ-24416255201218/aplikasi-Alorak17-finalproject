@@ -298,6 +298,46 @@ ion-footer {
   }
 }
 
+.stock-toast {
+  --border-radius: 14px;
+  --box-shadow: 0 14px 34px rgba(15, 23, 42, 0.24);
+  --button-color: #ffffff;
+  --color: #ffffff;
+  font-weight: 700;
+
+  &::part(container) {
+    margin: calc(10px + env(safe-area-inset-top)) 14px 0;
+    border-radius: 14px;
+  }
+
+  &::part(header) {
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: 0;
+  }
+
+  &::part(message) {
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  &::part(button) {
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0;
+  }
+}
+
+.stock-toast-danger {
+  --background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%);
+}
+
+.stock-toast-warning {
+  --background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+  --color: #111827;
+  --button-color: #111827;
+}
+
 @media (min-width: 768px) {
   ion-footer {
     display: none !important;

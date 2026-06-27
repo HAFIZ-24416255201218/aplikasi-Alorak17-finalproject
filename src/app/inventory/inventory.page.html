@@ -98,9 +98,6 @@
           <span class="category-tag">{{ item.category || 'Umum' }}</span>
           <div class="item-meta">
             <span>{{ item.sku }}</span>
-            <span class="dot"></span>
-            <ion-icon name="location-outline"></ion-icon>
-            <span>{{ item.location }}</span>
           </div>
         </div>
 
@@ -117,22 +114,8 @@
 
 <app-bottom-nav active="inventory"></app-bottom-nav>
 
-<div class="barcode-scanner-overlay" *ngIf="showBarcodeScanner">
-  <div class="barcode-scanner-container">
-    <div class="scanner-header">
-      <h2>Pindai QR atau Kode Batang</h2>
-      <button type="button" class="close-scanner" (click)="closeBarcodeScanner()" aria-label="Tutup scanner">
-        <ion-icon name="close-outline"></ion-icon>
-      </button>
-    </div>
-
-    <div class="camera-container">
-      <video #video class="camera-feed" autoplay playsinline muted></video>
-      <div class="scanner-frame">
-        <div class="scanner-line"></div>
-      </div>
-    </div>
-
-    <p class="scanner-instructions">{{ scannerMessage }}</p>
-  </div>
-</div>
+<app-barcode-scanner-popup
+  *ngIf="isScannerOpen"
+  (scanned)="applyScannedBarcode($event)"
+  (closed)="closeBarcodeScanner()"
+></app-barcode-scanner-popup>
